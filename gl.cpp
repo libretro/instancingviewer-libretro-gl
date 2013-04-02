@@ -16,8 +16,9 @@ static struct retro_hw_render_callback hw_render;
 using namespace glm;
 
 #define GL_GLEXT_PROTOTYPES
-#if defined(GLES) && 0
-#include <GLES2/gl2.h>
+#if defined(GLES)
+#include <GLES3/gl3.h>
+#include <GLES2/gl2ext.h>
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -175,7 +176,7 @@ static void compile_program(void)
       fprintf(stderr, "Program failed to link!\n");
 }
 
-#define CUBE_SIZE 64
+#define CUBE_SIZE 32
 
 static void setup_vao(void)
 {
@@ -233,8 +234,14 @@ static GLuint load_texture(const char *path)
    GLuint tex;
    glGenTextures(1, &tex);
    glBindTexture(GL_TEXTURE_2D, tex);
+
+#ifdef GLES
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, width, height,
+         0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, data);
+#else
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
          0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
+#endif
    free(data);
 
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -391,8 +398,11 @@ void retro_run(void)
    {
       update = false;
       glBindBuffer(GL_ARRAY_BUFFER, mbo);
-      GLfloat *buf = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-      memset(buf, 0, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4);
+
+      GLfloat *buf = (GLfloat*)glMapBufferRange(GL_ARRAY_BUFFER, 0,
+            CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 4 * sizeof(GLfloat),
+            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
       for (unsigned x = 0; x < CUBE_SIZE; x++)
          for (unsigned y = 0; y < CUBE_SIZE; y++)
             for (unsigned z = 0; z < CUBE_SIZE; z++)
@@ -406,7 +416,8 @@ void retro_run(void)
       glBindBuffer(GL_ARRAY_BUFFER, 0);
    }
    
-   glDrawElementsInstanced(GL_TRIANGLES, ARRAY_SIZE(indices), GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
+   glDrawElementsInstanced(GL_TRIANGLES, ARRAY_SIZE(indices),
+         GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
 
    glUseProgram(0);
    glBindVertexArray(0);
@@ -439,7 +450,7 @@ bool retro_load_game(const struct retro_game_info *info)
 #endif
    hw_render.context_reset = context_reset;
    hw_render.depth = true;
-   hw_render.stencil = true;
+   hw_render.stencil = false;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
       return false;
 

@@ -31,8 +31,10 @@ else
 endif
 
 ifeq ($(DEBUG), 1)
+   CXXFLAGS += -O0 -g
    CFLAGS += -O0 -g
 else
+   CXXFLAGS += -O3
    CFLAGS += -O3
 endif
 
@@ -42,7 +44,7 @@ CFLAGS += -std=gnu99 -Wall -pedantic $(fpic)
 
 LIBS += -lz
 ifeq ($(GLES), 1)
-   CFLAGS += -DGLES
+   CXXFLAGS += -DGLES
    LIBS += -lGLESv2
 else
    LIBS += $(GL_LIB)
