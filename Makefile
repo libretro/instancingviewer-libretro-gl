@@ -12,11 +12,14 @@ else ifneq ($(findstring win,$(shell uname -a)),)
 endif
 endif
 
+PKG_CONFIG = pkg-config
+
 ifeq ($(platform), unix)
    TARGET := libretro.so
    fpic := -fPIC
    SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
-   GL_LIB := -lGL
+   GL_LIB := -lGL $(shell ${PKG_CONFIG} glew --libs)
+   CXXFLAGS += $(shell ${PKG_CONFIG} glew --cflags)
 else ifeq ($(platform), osx)
    TARGET := libretro.dylib
    fpic := -fPIC
@@ -26,8 +29,8 @@ else
    CC = gcc
    TARGET := retro.dll
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
-   GL_LIB := -lopengl32
-   CFLAGS += -I..
+   GL_LIB := -lopengl32 $(shell ${PKG_CONFIG} glew --libs)
+   CXXFLAGS += $(shell ${PKG_CONFIG} glew --cflags)
 endif
 
 ifeq ($(DEBUG), 1)
@@ -39,7 +42,7 @@ else
 endif
 
 OBJECTS := gl.o rpng/rpng.o
-CXXFLAGS += -std=gnu++11 -Wall -pedantic $(fpic)
+CXXFLAGS += -std=gnu++03 -Wall -pedantic $(fpic)
 CFLAGS += -std=gnu99 -Wall -pedantic $(fpic)
 
 LIBS += -lz

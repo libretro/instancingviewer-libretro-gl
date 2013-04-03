@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
+#include <string>
 #include "rpng/rpng.h"
 
 #include <glm/glm.hpp>
@@ -20,9 +21,11 @@ using namespace glm;
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
 #else
+#include <GL/glew.h>
 #include <GL/gl.h>
-#include <GL/glext.h>
 #endif
+
+static std::string texpath;
 
 static GLuint prog;
 static GLuint vao;
@@ -272,7 +275,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_name     = "TestCore GL";
    info->library_version  = "v1";
    info->need_fullpath    = false;
-   info->valid_extensions = NULL; // Anything is fine, we don't care.
+   info->valid_extensions = "png";
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
@@ -429,9 +432,13 @@ void retro_run(void)
 static void context_reset(void)
 {
    fprintf(stderr, "Context reset!\n");
+#ifndef GLES
+   glewExperimental = GL_TRUE;
+   glewInit();
+#endif
    compile_program();
    setup_vao();
-   tex = load_texture("blockDiamond.png");
+   tex = load_texture(texpath.c_str());
 }
 
 bool retro_load_game(const struct retro_game_info *info)
@@ -454,9 +461,8 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
 
    fprintf(stderr, "Loaded game!\n");
-   (void)info;
-
    player_pos = vec3(0, 0, 0);
+   texpath = info->path;
 
    return true;
 }
