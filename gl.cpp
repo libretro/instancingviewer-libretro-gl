@@ -185,38 +185,21 @@ static void setup_vao(void)
 {
    glUseProgram(prog);
 
-   glGenVertexArrays(1, &vao);
-   glBindVertexArray(vao);
+   //glGenVertexArrays(1, &vao);
+   //glBindVertexArray(vao);
 
    glGenBuffers(1, &vbo);
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
 
-
-   int vloc = glGetAttribLocation(prog, "aVertex");
-   glVertexAttribPointer(vloc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, vert)));
-   glEnableVertexAttribArray(vloc);
-   int nloc = glGetAttribLocation(prog, "aNormal");
-   glVertexAttribPointer(nloc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
-   glEnableVertexAttribArray(nloc);
-   int tloc = glGetAttribLocation(prog, "aTexCoord");
-   glVertexAttribPointer(tloc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, tex)));
-   glEnableVertexAttribArray(tloc);
-
    glGenBuffers(1, &mbo);
    glBindBuffer(GL_ARRAY_BUFFER, mbo);
    glBufferData(GL_ARRAY_BUFFER, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
-
-   int mloc = glGetAttribLocation(prog, "aOffset");
-   glVertexAttribPointer(mloc, 4, GL_FLOAT, GL_FALSE, 0, 0);
-   glVertexAttribDivisor(mloc, 1); // Update per instance.
-   glEnableVertexAttribArray(mloc);
 
    glGenBuffers(1, &ibo);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-   glBindVertexArray(0);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
    glUseProgram(0);
@@ -369,7 +352,25 @@ void retro_run(void)
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    glUseProgram(prog);
-   glBindVertexArray(vao);
+   //glBindVertexArray(vao);
+
+   glBindBuffer(GL_ARRAY_BUFFER, vbo);
+   int vloc = glGetAttribLocation(prog, "aVertex");
+   glVertexAttribPointer(vloc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, vert)));
+   glEnableVertexAttribArray(vloc);
+   int nloc = glGetAttribLocation(prog, "aNormal");
+   glVertexAttribPointer(nloc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+   glEnableVertexAttribArray(nloc);
+   int tcloc = glGetAttribLocation(prog, "aTexCoord");
+   glVertexAttribPointer(tcloc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, tex)));
+   glEnableVertexAttribArray(tcloc);
+
+   glBindBuffer(GL_ARRAY_BUFFER, mbo);
+   int mloc = glGetAttribLocation(prog, "aOffset");
+   glVertexAttribPointer(mloc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+   glVertexAttribDivisor(mloc, 1); // Update per instance.
+   glEnableVertexAttribArray(mloc);
+
 
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_CULL_FACE);
@@ -393,9 +394,9 @@ void retro_run(void)
    mat4 vp = proj * view;
    glUniformMatrix4fv(vploc, 1, GL_FALSE, &vp[0][0]);
 
-   int mloc = glGetUniformLocation(prog, "uM");
+   int modelloc = glGetUniformLocation(prog, "uM");
    mat4 model = mat4(1.0);
-   glUniformMatrix4fv(mloc, 1, GL_FALSE, &model[0][0]);
+   glUniformMatrix4fv(modelloc, 1, GL_FALSE, &model[0][0]);
 
    if (update)
    {
@@ -419,11 +420,19 @@ void retro_run(void)
       glBindBuffer(GL_ARRAY_BUFFER, 0);
    }
    
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
    glDrawElementsInstanced(GL_TRIANGLES, ARRAY_SIZE(indices),
          GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
 
+
    glUseProgram(0);
-   glBindVertexArray(0);
+   //glBindVertexArray(0);
+   glBindBuffer(GL_ARRAY_BUFFER, 0);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+   glDisableVertexAttribArray(vloc);
+   glDisableVertexAttribArray(nloc);
+   glDisableVertexAttribArray(tcloc);
+   glDisableVertexAttribArray(mloc);
    glBindTexture(GL_TEXTURE_2D, 0);
 
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, 640, 480, 0);

@@ -29,8 +29,8 @@ else
    CC = gcc
    TARGET := retro.dll
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
-   GL_LIB := -lopengl32 $(shell ${PKG_CONFIG} glew --libs)
-   CXXFLAGS += $(shell ${PKG_CONFIG} glew --cflags)
+   GL_LIB := -L. -lglew32 -lopengl32
+   CXXFLAGS += -DGLEW_STATIC
 endif
 
 ifeq ($(DEBUG), 1)
