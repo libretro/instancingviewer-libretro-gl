@@ -18,7 +18,7 @@ using namespace glm;
 
 #define GL_GLEXT_PROTOTYPES
 #if defined(GLES)
-#include <GLES3/gl3.h>
+#include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #else
 #include <GL/glew.h>
