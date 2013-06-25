@@ -28,7 +28,6 @@ using namespace glm;
 static std::string texpath;
 
 static GLuint prog;
-static GLuint vao;
 static GLuint vbo, mbo;
 static GLuint ibo;
 static GLuint tex;
@@ -179,14 +178,11 @@ static void compile_program(void)
       fprintf(stderr, "Program failed to link!\n");
 }
 
-#define CUBE_SIZE 32
+static unsigned cube_size = 32;
 
 static void setup_vao(void)
 {
    glUseProgram(prog);
-
-   //glGenVertexArrays(1, &vao);
-   //glBindVertexArray(vao);
 
    glGenBuffers(1, &vbo);
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -194,7 +190,7 @@ static void setup_vao(void)
 
    glGenBuffers(1, &mbo);
    glBindBuffer(GL_ARRAY_BUFFER, mbo);
-   glBufferData(GL_ARRAY_BUFFER, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
+   glBufferData(GL_ARRAY_BUFFER, cube_size * cube_size * cube_size * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
 
    glGenBuffers(1, &ibo);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -255,7 +251,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
-   info->library_name     = "TestCore GL";
+   info->library_name     = "InstancingViewer GL";
    info->library_version  = "v1";
    info->need_fullpath    = false;
    info->valid_extensions = "png";
@@ -352,7 +348,6 @@ void retro_run(void)
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    glUseProgram(prog);
-   //glBindVertexArray(vao);
 
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
    int vloc = glGetAttribLocation(prog, "aVertex");
@@ -404,17 +399,17 @@ void retro_run(void)
       glBindBuffer(GL_ARRAY_BUFFER, mbo);
 
       GLfloat *buf = (GLfloat*)glMapBufferRange(GL_ARRAY_BUFFER, 0,
-            CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 4 * sizeof(GLfloat),
+            cube_size * cube_size * cube_size * 4 * sizeof(GLfloat),
             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-      for (unsigned x = 0; x < CUBE_SIZE; x++)
-         for (unsigned y = 0; y < CUBE_SIZE; y++)
-            for (unsigned z = 0; z < CUBE_SIZE; z++)
+      for (unsigned x = 0; x < cube_size; x++)
+         for (unsigned y = 0; y < cube_size; y++)
+            for (unsigned z = 0; z < cube_size; z++)
             {
-               GLfloat *off = buf + 4 * ((CUBE_SIZE * CUBE_SIZE * z) + (CUBE_SIZE * y) + x);
-               off[0] = 4.0f * ((float)x - CUBE_SIZE / 2);
-               off[1] = 4.0f * ((float)y - CUBE_SIZE / 2);
-               off[2] = -100.0f + 4.0f * ((float)z - CUBE_SIZE / 2);
+               GLfloat *off = buf + 4 * ((cube_size * cube_size * z) + (cube_size * y) + x);
+               off[0] = 4.0f * ((float)x - cube_size / 2);
+               off[1] = 4.0f * ((float)y - cube_size / 2);
+               off[2] = -100.0f + 4.0f * ((float)z - cube_size / 2);
             }
       glUnmapBuffer(GL_ARRAY_BUFFER);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -422,11 +417,9 @@ void retro_run(void)
    
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
    glDrawElementsInstanced(GL_TRIANGLES, ARRAY_SIZE(indices),
-         GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
-
+         GL_UNSIGNED_BYTE, NULL, cube_size * cube_size * cube_size);
 
    glUseProgram(0);
-   //glBindVertexArray(0);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
    glDisableVertexAttribArray(vloc);
