@@ -24,6 +24,19 @@ using namespace glm;
 #include <GL/gl.h>
 #endif
 
+#define BASE_WIDTH 320
+#define BASE_HEIGHT 240
+#ifdef GLES
+#define MAX_WIDTH 1024
+#define MAX_HEIGHT 1024
+#else
+#define MAX_WIDTH 1920
+#define MAX_HEIGHT 1600
+#endif
+
+static unsigned width = BASE_WIDTH;
+static unsigned height = BASE_HEIGHT;
+
 static std::string texpath;
 
 static GLuint prog;
@@ -261,10 +274,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->timing.fps = 60.0;
    info->timing.sample_rate = 30000.0;
 
-   info->geometry.base_width  = 640;
-   info->geometry.base_height = 480;
-   info->geometry.max_width   = 640;
-   info->geometry.max_height  = 480;
+   info->geometry.base_width  = BASE_WIDTH;
+   info->geometry.base_height = BASE_HEIGHT;
+   info->geometry.max_width   = MAX_WIDTH;
+   info->geometry.max_height  = MAX_HEIGHT;
 }
 
 static retro_video_refresh_t video_cb;
@@ -279,7 +292,14 @@ void retro_set_environment(retro_environment_t cb)
    environ_cb = cb;
 
    struct retro_variable variables[] = {
-      { "cube_size",
+      { "resolution",
+#ifdef GLES
+         "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768" },
+#else
+      "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1024x1024|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
+#endif
+                        {
+         "cube_size",
          "Cube size; 1|2|4|8|16|32|64|128" },
       { NULL, NULL },
    };
@@ -358,6 +378,143 @@ static bool first_init = true;
 static void update_variables(void)
 {
    struct retro_variable var;
+
+   var.key = "resolution";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      if (strcmp(var.value, "320x200") == 0)
+      {
+         width = 320;
+         height = 200;
+      }
+      else if (strcmp(var.value, "320x240") == 0)
+      {
+         width = 320;
+         height = 240;
+      }
+      else if (strcmp(var.value, "320x480") == 0)
+      {
+         width = 320;
+         height = 480;
+      }
+      else if (strcmp(var.value, "360x200") == 0)
+      {
+         width = 360;
+         height = 200;
+      }
+      else if (strcmp(var.value, "360x240") == 0)
+      {
+         width = 360;
+         height = 240;
+      }
+      else if (strcmp(var.value, "360x400") == 0)
+      {
+         width = 360;
+         height = 400;
+      }
+      else if (strcmp(var.value, "360x480") == 0)
+      {
+         width = 360;
+         height = 480;
+      }
+      else if (strcmp(var.value, "400x224") == 0)
+      {
+         width = 400;
+         height = 224;
+      }
+      else if (strcmp(var.value, "480x272") == 0)
+      {
+         width = 480;
+         height = 272;
+      }
+      else if (strcmp(var.value, "512x224") == 0)
+      {
+         width = 512;
+         height = 224;
+      }
+      else if (strcmp(var.value, "512x384") == 0)
+      {
+         width = 512;
+         height = 384;
+      }
+      else if (strcmp(var.value, "640x240") == 0)
+      {
+         width = 640;
+         height = 240;
+      }
+      else if (strcmp(var.value, "640x448") == 0)
+      {
+         width = 640;
+         height = 448;
+      }
+      else if (strcmp(var.value, "640x480") == 0)
+      {
+         width = 640;
+         height = 480;
+      }
+      else if (strcmp(var.value, "720x576") == 0)
+      {
+         width = 720;
+         height = 576;
+      }
+      else if (strcmp(var.value, "800x480") == 0)
+      {
+         width = 800;
+         height = 480;
+      }
+      else if (strcmp(var.value, "800x600") == 0)
+      {
+         width = 800;
+         height = 600;
+      }
+      else if (strcmp(var.value, "960x720") == 0)
+      {
+         width = 960;
+         height = 720;
+      }
+      else if (strcmp(var.value, "1024x768") == 0)
+      {
+         width = 1024;
+         height = 768;
+      }
+      else if (strcmp(var.value, "1024x1024") == 0)
+      {
+         width = 1024;
+         height = 1024;
+      }
+      else if (strcmp(var.value, "1280x720") == 0)
+      {
+         width = 1280;
+         height = 720;
+      }
+      else if (strcmp(var.value, "1280x1024") == 0)
+      {
+         width = 1280;
+         height = 1024; 
+      }
+      else if (strcmp(var.value, "1600x1080") == 0)
+      {
+         width = 1600;
+         height = 1080; 
+      }
+      else if (strcmp(var.value, "1920x1080") == 0)
+      {
+         width = 1920;
+         height = 1080;
+      }
+      else if (strcmp(var.value, "1920x1440") == 0)
+      {
+         width = 1920;
+         height = 1440;
+      }
+      else if (strcmp(var.value, "1920x1600") == 0)
+      {
+         width = 1920;
+         height = 1600;
+      }
+   }
    
    var.key = "cube_size";
    var.value = NULL;
@@ -382,7 +539,7 @@ void retro_run(void)
 
    glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
    glClearColor(0.1, 0.1, 0.1, 1.0);
-   glViewport(0, 0, 640, 480);
+   glViewport(0, 0, width, height);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    glUseProgram(prog);
@@ -466,7 +623,7 @@ void retro_run(void)
    glDisableVertexAttribArray(mloc);
    glBindTexture(GL_TEXTURE_2D, 0);
 
-   video_cb(RETRO_HW_FRAME_BUFFER_VALID, 640, 480, 0);
+   video_cb(RETRO_HW_FRAME_BUFFER_VALID, width, height, 0);
 }
 
 
