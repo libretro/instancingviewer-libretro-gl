@@ -1,3 +1,25 @@
+/* Copyright (C) 2010-2013 The RetroArch team
+ *
+ * ---------------------------------------------------------------------------------------
+ * The following license statement only applies to this libretro API header (libretro.h).
+ * ---------------------------------------------------------------------------------------
+ *
+ * Permission is hereby granted, free of charge,
+ * to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #ifndef LIBRETRO_H__
 #define LIBRETRO_H__
 
@@ -350,18 +372,7 @@ enum retro_mod
                                            // Boolean value whether or not frontend supports frame duping,
                                            // passing NULL to video frame callback.
                                            //
-#define RETRO_ENVIRONMENT_GET_VARIABLE  4  // struct retro_variable * --
-                                           // Interface to aquire user-defined information from environment
-                                           // that cannot feasibly be supported in a multi-system way.
-                                           // Mostly used for obscure,
-                                           // specific features that the user can tap into when neseccary.
-                                           //
-#define RETRO_ENVIRONMENT_SET_VARIABLES 5  // const struct retro_variable * --
-                                           // Allows an implementation to signal the environment
-                                           // which variables it might want to check for later using GET_VARIABLE.
-                                           // 'data' points to an array of retro_variable structs terminated by a { NULL, NULL } element.
-                                           // retro_variable::value should contain a human readable description of the key.
-                                           //
+// Environ 4, 5 are no longer supported (GET_VARIABLE / SET_VARIABLES), and reserved to avoid possible ABI clash.
 #define RETRO_ENVIRONMENT_SET_MESSAGE   6  // const struct retro_message * --
                                            // Sets a message to be displayed in implementation-specific manner for a certain amount of 'frames'.
                                            // Should not be used for trivial messages, which should simply be logged to stderr.
@@ -432,7 +443,44 @@ enum retro_mod
                                            // If successful, libretro cores will be able to render to a frontend-provided framebuffer.
                                            // The size of this framebuffer will be at least as large as max_width/max_height provided in get_av_info().
                                            // If HW rendering is used, pass only RETRO_HW_FRAME_BUFFER_VALID or NULL to retro_video_refresh_t.
-
+#define RETRO_ENVIRONMENT_GET_VARIABLE 15
+                                           // struct retro_variable * --
+                                           // Interface to aquire user-defined information from environment
+                                           // that cannot feasibly be supported in a multi-system way.
+                                           // 'key' should be set to a key which has already been set by SET_VARIABLES.
+                                           // 'data' will be set to a value or NULL.
+                                           //
+#define RETRO_ENVIRONMENT_SET_VARIABLES 16
+                                           // const struct retro_variable * --
+                                           // Allows an implementation to signal the environment
+                                           // which variables it might want to check for later using GET_VARIABLE.
+                                           // This allows the frontend to present these variables to a user dynamically.
+                                           // This should be called as early as possible (ideally in retro_set_environment).
+                                           //
+                                           // 'data' points to an array of retro_variable structs terminated by a { NULL, NULL } element.
+                                           // retro_variable::key should be namespaced to not collide with other implementations' keys. E.g. A core called 'foo' should use keys named as 'foo_option'.
+                                           // retro_variable::value should contain a human readable description of the key as well as a '|' delimited list of expected values.
+                                           // The number of possible options should be very limited, i.e. it should be feasible to cycle through options without a keyboard.
+                                           // First entry should be treated as a default.
+                                           //
+                                           // Example entry:
+                                           // { "foo_option", "Speed hack coprocessor X; false|true" }
+                                           //
+                                           // Text before first ';' is description. This ';' must be followed by a space, and followed by a list of possible values split up with '|'.
+                                           // Only strings are operated on. The possible values will generally be displayed and stored as-is by the frontend.
+                                           //
+#define RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE 17
+                                           // bool * --
+                                           // Result is set to true if some variables are updated by
+                                           // frontend since last call to RETRO_ENVIRONMENT_GET_VARIABLE.
+                                           // Variables should be queried with GET_VARIABLE.
+                                           //
+#define RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME 18
+                                           // const bool * --
+                                           // If true, the libretro implementation supports calls to retro_load_game() with NULL as argument.
+                                           // Used by cores which can run without particular game data.
+                                           // This should be called within retro_set_environment() only.
+                                          
 
 // Pass this to retro_video_refresh_t if rendering to hardware.
 // Passing NULL to retro_video_refresh_t is still a frame dupe as normal.
@@ -477,7 +525,7 @@ typedef void (*retro_keyboard_event_t)(bool down, unsigned keycode, uint32_t cha
 
 struct retro_keyboard_callback
 {
-    retro_keyboard_event_t callback;
+   retro_keyboard_event_t callback;
 };
 
 // Callbacks for RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE.

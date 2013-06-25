@@ -178,7 +178,7 @@ static void compile_program(void)
       fprintf(stderr, "Program failed to link!\n");
 }
 
-static unsigned cube_size = 32;
+static unsigned cube_size = 1;
 
 static void setup_vao(void)
 {
@@ -278,6 +278,14 @@ static retro_input_state_t input_state_cb;
 void retro_set_environment(retro_environment_t cb)
 {
    environ_cb = cb;
+
+   struct retro_variable variables[] = {
+      { "cube_size",
+         "Cube size; 1|2|4|8|16|32|64|128" },
+      { NULL, NULL },
+   };
+
+   environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -338,8 +346,43 @@ static vec3 check_input()
    return look_dir;
 }
 
+static void context_reset(void)
+{
+   fprintf(stderr, "Context reset!\n");
+#ifndef GLES
+   glewExperimental = GL_TRUE;
+   glewInit();
+#endif
+   compile_program();
+   setup_vao();
+   tex = load_texture(texpath.c_str());
+}
+
+static bool first_init = true;
+
+static void update_variables(void)
+{
+   struct retro_variable var;
+   
+   var.key = "cube_size";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      cube_size = atoi(var.value);
+      update = true;
+
+      if (!first_init)
+         context_reset();
+   }
+}
+
 void retro_run(void)
 {
+   bool updated = false;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      update_variables();
+
    vec3 look_dir = check_input();
 
    glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
@@ -431,20 +474,11 @@ void retro_run(void)
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, 640, 480, 0);
 }
 
-static void context_reset(void)
-{
-   fprintf(stderr, "Context reset!\n");
-#ifndef GLES
-   glewExperimental = GL_TRUE;
-   glewInit();
-#endif
-   compile_program();
-   setup_vao();
-   tex = load_texture(texpath.c_str());
-}
 
 bool retro_load_game(const struct retro_game_info *info)
 {
+   update_variables();
+
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
    {
@@ -465,6 +499,8 @@ bool retro_load_game(const struct retro_game_info *info)
    fprintf(stderr, "Loaded game!\n");
    player_pos = vec3(0, 0, 0);
    texpath = info->path;
+
+   first_init = false;
 
    return true;
 }
