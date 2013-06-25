@@ -21,7 +21,6 @@ using namespace glm;
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #else
-#include <GL/glew.h>
 #include <GL/gl.h>
 #endif
 
@@ -349,10 +348,6 @@ static vec3 check_input()
 static void context_reset(void)
 {
    fprintf(stderr, "Context reset!\n");
-#ifndef GLES
-   glewExperimental = GL_TRUE;
-   glewInit();
-#endif
    compile_program();
    setup_vao();
    tex = load_texture(texpath.c_str());

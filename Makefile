@@ -20,8 +20,7 @@ ifeq ($(platform), unix)
    TARGET := $(TARGET_NAME)_libretro.so
    fpic := -fPIC
    SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
-   GL_LIB := -lGL $(shell ${PKG_CONFIG} glew --libs)
-   CXXFLAGS += $(shell ${PKG_CONFIG} glew --cflags)
+   GL_LIB := -lGL
 else ifeq ($(platform), osx)
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
@@ -31,7 +30,7 @@ else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
-   GL_LIB := -L. -lglew32 -lopengl32
+   GL_LIB := -L. -lopengl32
    CXXFLAGS += -DGLEW_STATIC
 endif
 
