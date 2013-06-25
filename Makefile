@@ -42,7 +42,7 @@ else
    CFLAGS += -O3
 endif
 
-OBJECTS := libretro.o rpng/rpng.o
+OBJECTS := libretro.o glsym.o rpng/rpng.o
 CXXFLAGS += -std=gnu++03 -Wall -pedantic $(fpic)
 CFLAGS += -std=gnu99 -Wall -pedantic $(fpic)
 
