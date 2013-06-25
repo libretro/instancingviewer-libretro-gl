@@ -14,20 +14,22 @@ endif
 
 PKG_CONFIG = pkg-config
 
+TARGET_NAME := instancingviewer
+
 ifeq ($(platform), unix)
-   TARGET := libretro.so
+   TARGET := $(TARGET_NAME)_libretro.so
    fpic := -fPIC
    SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
    GL_LIB := -lGL $(shell ${PKG_CONFIG} glew --libs)
    CXXFLAGS += $(shell ${PKG_CONFIG} glew --cflags)
 else ifeq ($(platform), osx)
-   TARGET := libretro.dylib
+   TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGL
 else
    CC = gcc
-   TARGET := retro.dll
+   TARGET := $(TARGET_NAME)_libretro.dll
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
    GL_LIB := -L. -lglew32 -lopengl32
    CXXFLAGS += -DGLEW_STATIC
