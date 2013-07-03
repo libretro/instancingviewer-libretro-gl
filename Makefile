@@ -43,8 +43,8 @@ else
 endif
 
 OBJECTS := libretro.o glsym.o rpng/rpng.o
-CXXFLAGS += -std=gnu++03 -Wall -pedantic $(fpic)
-CFLAGS += -std=gnu99 -Wall -pedantic $(fpic)
+CXXFLAGS += -Wall -pedantic $(fpic)
+CFLAGS += -Wall -pedantic $(fpic)
 
 LIBS += -lz
 ifeq ($(GLES), 1)
