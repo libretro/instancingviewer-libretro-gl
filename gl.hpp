@@ -13,7 +13,8 @@
 #include <GLES2/gl2.h>
 #endif
 #elif defined(__APPLE__)
-#include <OpenGL/gl.h>
+#define GL3_PROTOTYPES
+#include <OpenGL/gl3.h>
 #include <OpenGL/glext.h>
 #elif defined(__CELLOS_LV2__)
 #include <PSGL/psgl.h>

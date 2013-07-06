@@ -17,14 +17,6 @@ static struct retro_hw_render_callback hw_render;
 
 using namespace glm;
 
-#define GL_GLEXT_PROTOTYPES
-#if defined(GLES)
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#else
-#include <GL/gl.h>
-#endif
-
 #define BASE_WIDTH 320
 #define BASE_HEIGHT 240
 #ifdef GLES
@@ -472,7 +464,11 @@ void retro_run(void)
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
    int mloc = SYM(glGetAttribLocation)(prog, "aOffset");
    SYM(glVertexAttribPointer)(mloc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+#ifdef __APPLE__
+   SYM(glVertexAttribDivisorARB)(mloc, 1); // Update per instance.
+#else
    SYM(glVertexAttribDivisor)(mloc, 1); // Update per instance.
+#endif
    SYM(glEnableVertexAttribArray)(mloc);
 
    SYM(glEnable)(GL_DEPTH_TEST);
