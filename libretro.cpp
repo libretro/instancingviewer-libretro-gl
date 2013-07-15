@@ -34,7 +34,6 @@ static std::string texpath;
 
 static GLuint prog;
 static GLuint vbo, mbo;
-static GLuint ibo;
 static GLuint tex;
 static bool update;
 
@@ -197,12 +196,7 @@ static void setup_vao(void)
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
    SYM(glBufferData)(GL_ARRAY_BUFFER, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
 
-   SYM(glGenBuffers)(1, &ibo);
-   SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, ibo);
-   SYM(glBufferData)(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-   SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
    SYM(glUseProgram)(0);
 
    update = true;
@@ -257,7 +251,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "InstancingViewer GL";
-   info->library_version  = "v1";
+   info->library_version  = "v2";
    info->need_fullpath    = false;
    info->valid_extensions = "png";
 }
@@ -466,11 +460,6 @@ void retro_run(void)
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
    int mloc = SYM(glGetAttribLocation)(prog, "aOffset");
    SYM(glVertexAttribPointer)(mloc, 4, GL_FLOAT, GL_FALSE, 0, 0);
-#ifdef __APPLE__
-   SYM(glVertexAttribDivisorARB)(mloc, 1); // Update per instance.
-#else
-   SYM(glVertexAttribDivisor)(mloc, 1); // Update per instance.
-#endif
    SYM(glEnableVertexAttribArray)(mloc);
 
    SYM(glEnable)(GL_DEPTH_TEST);
@@ -516,18 +505,17 @@ void retro_run(void)
                off[0] = 4.0f * ((float)x - CUBE_SIZE / 2);
                off[1] = 4.0f * ((float)y - CUBE_SIZE / 2);
                off[2] = -100.0f + 4.0f * ((float)z - CUBE_SIZE / 2);
+               SYM(glBufferData)(GL_ARRAY_BUFFER, sizeof(vertex_data), off, GL_STATIC_DRAW);
             }
       SYM(glUnmapBuffer)(GL_ARRAY_BUFFER);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
    }
    
-   SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, ibo);
-   SYM(glDrawElementsInstanced)(GL_TRIANGLES, ARRAY_SIZE(indices),
-         GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
+   SYM(glBindBuffer)(GL_ARRAY_BUFFER, vbo);
+   SYM(glDrawArrays)(GL_TRIANGLES, 0, 24 * CUBE_SIZE);
 
    SYM(glUseProgram)(0);
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-   SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
    SYM(glDisableVertexAttribArray)(vloc);
    SYM(glDisableVertexAttribArray)(nloc);
    SYM(glDisableVertexAttribArray)(tcloc);
