@@ -67,6 +67,8 @@ else
    CXXFLAGS += -DGLEW_STATIC
 endif
 
+CFLAGS += -std=gnu99
+
 ifeq ($(DEBUG), 1)
    CXXFLAGS += -O0 -g
    CFLAGS += -O0 -g
