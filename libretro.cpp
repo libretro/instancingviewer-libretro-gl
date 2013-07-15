@@ -183,7 +183,7 @@ static void compile_program(void)
       fprintf(stderr, "Program failed to link!\n");
 }
 
-static unsigned cube_size = 1;
+#define CUBE_SIZE 1
 
 static void setup_vao(void)
 {
@@ -195,7 +195,7 @@ static void setup_vao(void)
 
    SYM(glGenBuffers)(1, &mbo);
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
-   SYM(glBufferData)(GL_ARRAY_BUFFER, cube_size * cube_size * cube_size * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
+   SYM(glBufferData)(GL_ARRAY_BUFFER, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
 
    SYM(glGenBuffers)(1, &ibo);
    SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -320,7 +320,7 @@ void retro_set_environment(retro_environment_t cb)
       "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1024x1024|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
 #endif
                         {
-         "cube_size",
+         "CUBE_SIZE",
          "Cube size; 1|2|4|8|16|32|64|128" },
       { NULL, NULL },
    };
@@ -422,17 +422,19 @@ static void update_variables(void)
       fprintf(stderr, "Got size: %u x %u.\n", width, height);
    }
    
-   var.key = "cube_size";
+#if 0
+   var.key = "CUBE_SIZE";
    var.value = NULL;
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
    {
-      cube_size = atoi(var.value);
+      CUBE_SIZE = atoi(var.value);
       update = true;
 
       if (!first_init)
          context_reset();
    }
+#endif
 }
 
 void retro_run(void)
@@ -503,17 +505,17 @@ void retro_run(void)
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
 
       GLfloat *buf = (GLfloat*)SYM(glMapBufferRange)(GL_ARRAY_BUFFER, 0,
-            cube_size * cube_size * cube_size * 4 * sizeof(GLfloat),
+            CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 4 * sizeof(GLfloat),
             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-      for (unsigned x = 0; x < cube_size; x++)
-         for (unsigned y = 0; y < cube_size; y++)
-            for (unsigned z = 0; z < cube_size; z++)
+      for (unsigned x = 0; x < CUBE_SIZE; x++)
+         for (unsigned y = 0; y < CUBE_SIZE; y++)
+            for (unsigned z = 0; z < CUBE_SIZE; z++)
             {
-               GLfloat *off = buf + 4 * ((cube_size * cube_size * z) + (cube_size * y) + x);
-               off[0] = 4.0f * ((float)x - cube_size / 2);
-               off[1] = 4.0f * ((float)y - cube_size / 2);
-               off[2] = -100.0f + 4.0f * ((float)z - cube_size / 2);
+               GLfloat *off = buf + 4 * ((CUBE_SIZE * CUBE_SIZE * z) + (CUBE_SIZE * y) + x);
+               off[0] = 4.0f * ((float)x - CUBE_SIZE / 2);
+               off[1] = 4.0f * ((float)y - CUBE_SIZE / 2);
+               off[2] = -100.0f + 4.0f * ((float)z - CUBE_SIZE / 2);
             }
       SYM(glUnmapBuffer)(GL_ARRAY_BUFFER);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
@@ -521,7 +523,7 @@ void retro_run(void)
    
    SYM(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, ibo);
    SYM(glDrawElementsInstanced)(GL_TRIANGLES, ARRAY_SIZE(indices),
-         GL_UNSIGNED_BYTE, NULL, cube_size * cube_size * cube_size);
+         GL_UNSIGNED_BYTE, NULL, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE);
 
    SYM(glUseProgram)(0);
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
