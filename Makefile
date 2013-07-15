@@ -16,16 +16,49 @@ PKG_CONFIG = pkg-config
 
 TARGET_NAME := instancingviewer
 
-ifeq ($(platform), unix)
+ifneq (,$(findstring unix,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    fpic := -fPIC
    SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
+ifneq (,$(findstring gles,$(platform)))
+   GLES = 1
+else
    GL_LIB := -lGL
+endif
 else ifeq ($(platform), osx)
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGL
+else ifneq (,$(findstring armv,$(platform)))
+   CC = gcc
+   CXX = g++
+   TARGET := $(TARGET_NAME)_libretro.so
+   fpic := -fPIC
+   SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
+   CXXFLAGS += -I.
+   LIBS := -lz
+ifneq (,$(findstring gles,$(platform)))
+   GLES := 1
+else
+   GL_LIB := -lGL
+endif
+ifneq (,$(findstring cortexa8,$(platform)))
+   CXXFLAGS += -marm -mcpu=cortex-a8
+else ifneq (,$(findstring cortexa9,$(platform)))
+   CXXFLAGS += -marm -mcpu=cortex-a9
+endif
+   CXXFLAGS += -marm
+ifneq (,$(findstring neon,$(platform)))
+   CXXFLAGS += -mfpu=neon
+   HAVE_NEON = 1
+endif
+ifneq (,$(findstring softfloat,$(platform)))
+   CXXFLAGS += -mfloat-abi=softfp
+else ifneq (,$(findstring hardfloat,$(platform)))
+   CXXFLAGS += -mfloat-abi=hard
+endif
+   CXXFLAGS += -DARM
 else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
