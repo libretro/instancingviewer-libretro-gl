@@ -505,7 +505,7 @@ void retro_run(void)
                off[0] = 4.0f * ((float)x - CUBE_SIZE / 2);
                off[1] = 4.0f * ((float)y - CUBE_SIZE / 2);
                off[2] = -100.0f + 4.0f * ((float)z - CUBE_SIZE / 2);
-               SYM(glBufferData)(GL_ARRAY_BUFFER, sizeof(vertex_data), off, GL_STATIC_DRAW);
+               SYM(glBufferData)(GL_ARRAY_BUFFER, sizeof(off), off, GL_STATIC_DRAW);
             }
       SYM(glUnmapBuffer)(GL_ARRAY_BUFFER);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
