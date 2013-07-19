@@ -59,6 +59,16 @@ else ifneq (,$(findstring hardfloat,$(platform)))
    CXXFLAGS += -mfloat-abi=hard
 endif
    CXXFLAGS += -DARM
+else ifeq ($(platform), ios)
+   TARGET := $(TARGET_NAME)_libretro_ios.dylib
+   GLES := 1
+   SHARED := -dynamiclib
+   GL_LIB := -framework OpenGLES
+   CC = clang -arch armv7 -isysroot $(IOSSDK)
+   CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
+   DEFINES += -DIOS
+   CFLAGS += $(DEFINES)
+   CXXFLAGS += $(DEFINES)
 else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
@@ -84,7 +94,11 @@ CFLAGS += -Wall $(fpic)
 LIBS += -lz
 ifeq ($(GLES), 1)
    CXXFLAGS += -DGLES
+ifeq ($(platform), ios)
+   LIBS += $(GL_LIB)
+else
    LIBS += -lGLESv2
+endif
 else
    LIBS += $(GL_LIB)
 endif

@@ -60,7 +60,6 @@ namespace GL
 	 _D(glDisableVertexAttribArray),
 	 _D(glVertexAttribDivisorARB),
 	 _D(glUniform4fv),
-	 _D(glMapBufferRange),
 #endif
       };
 #undef _D
