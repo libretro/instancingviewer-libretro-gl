@@ -35,7 +35,7 @@ static unsigned height = BASE_HEIGHT;
 static std::string texpath;
 
 static GLuint prog;
-static GLuint vbo, mbo;
+static GLuint vbo;
 static GLuint tex;
 static bool update;
 
@@ -127,8 +127,8 @@ static const char *vertex_shader[] = {
 };
 
 static const char *fragment_shader[] = {
-   "#ifdef GL_ES",
-   "precision mediump float;",
+   "#ifdef GLES \n",
+   "precision mediump float; \n",
    "#endif",
    "varying vec3 normal;",
    "varying vec4 model_pos;",
