@@ -105,7 +105,8 @@ struct idat_buffer
 
 static enum png_chunk_type png_chunk_type(const struct png_chunk *chunk)
 {
-   for (unsigned i = 0; i < sizeof(chunk_map) / sizeof(chunk_map[0]); i++)
+   unsigned i;
+   for (i = 0; i < sizeof(chunk_map) / sizeof(chunk_map[0]); i++)
    {
       if (memcmp(chunk->type, chunk_map[i].id, 4) == 0)
          return chunk_map[i].type;
@@ -193,7 +194,8 @@ static inline int paeth(int a, int b, int c)
 
 static inline void copy_line_rgb(uint32_t *data, const uint8_t *decoded, unsigned width)
 {
-   for (unsigned i = 0; i < width; i++)
+   unsigned i;
+   for (i = 0; i < width; i++)
    {
       uint32_t r = *decoded++;
       uint32_t g = *decoded++;
@@ -204,7 +206,8 @@ static inline void copy_line_rgb(uint32_t *data, const uint8_t *decoded, unsigne
 
 static inline void copy_line_rgba(uint32_t *data, const uint8_t *decoded, unsigned width)
 {
-   for (unsigned i = 0; i < width; i++)
+   unsigned i;
+   for (i = 0; i < width; i++)
    {
       uint32_t r = *decoded++;
       uint32_t g = *decoded++;
@@ -217,6 +220,7 @@ static inline void copy_line_rgba(uint32_t *data, const uint8_t *decoded, unsign
 static bool png_reverse_filter(uint32_t *data, const struct png_ihdr *ihdr,
       const uint8_t *inflate_buf, size_t inflate_buf_size)
 {
+   unsigned h;
    bool ret = true;
    unsigned bpp = ihdr->color_type == 2 ? 3 : 4;
    if (inflate_buf_size < (ihdr->width * bpp + 1) * ihdr->height)
@@ -229,10 +233,12 @@ static bool png_reverse_filter(uint32_t *data, const struct png_ihdr *ihdr,
    if (!decoded_scanline || !decoded_scanline)
       GOTO_END_ERROR();
 
-   for (unsigned h = 0; h < ihdr->height;
+   for (h = 0; h < ihdr->height;
          h++, inflate_buf += pitch, data += ihdr->width)
    {
       unsigned filter = *inflate_buf++;
+      unsigned i;
+
       switch (filter)
       {
          case 0: // None
@@ -240,24 +246,24 @@ static bool png_reverse_filter(uint32_t *data, const struct png_ihdr *ihdr,
             break;
 
          case 1: // Sub
-            for (unsigned i = 0; i < bpp; i++)
+            for (i = 0; i < bpp; i++)
                decoded_scanline[i] = inflate_buf[i];
-            for (unsigned i = bpp; i < pitch; i++)
+            for (i = bpp; i < pitch; i++)
                decoded_scanline[i] = decoded_scanline[i - bpp] + inflate_buf[i];
             break;
 
          case 2: // Up
-            for (unsigned i = 0; i < pitch; i++)
+            for (i = 0; i < pitch; i++)
                decoded_scanline[i] = prev_scanline[i] + inflate_buf[i];
             break;
 
          case 3: // Average
-            for (unsigned i = 0; i < bpp; i++)
+            for (i = 0; i < bpp; i++)
             {
                uint8_t avg = prev_scanline[i] >> 1;
                decoded_scanline[i] = avg + inflate_buf[i];
             }
-            for (unsigned i = bpp; i < pitch; i++)
+            for (i = bpp; i < pitch; i++)
             {
                uint8_t avg = (decoded_scanline[i - bpp] + prev_scanline[i]) >> 1;
                decoded_scanline[i] = avg + inflate_buf[i];
@@ -265,9 +271,9 @@ static bool png_reverse_filter(uint32_t *data, const struct png_ihdr *ihdr,
             break;
 
          case 4: // Paeth
-            for (unsigned i = 0; i < bpp; i++)
+            for (i = 0; i < bpp; i++)
                decoded_scanline[i] = paeth(0, prev_scanline[i], 0) + inflate_buf[i];
-            for (unsigned i = bpp; i < pitch; i++)
+            for (i = bpp; i < pitch; i++)
                decoded_scanline[i] = paeth(decoded_scanline[i - bpp], prev_scanline[i], prev_scanline[i - bpp]) + inflate_buf[i];
             break;
 
@@ -306,6 +312,7 @@ static bool png_append_idat(FILE *file, const struct png_chunk *chunk, struct id
 
 bool rpng_load_image_argb(const char *path, uint32_t **data, unsigned *width, unsigned *height)
 {
+   long pos;
    *data   = NULL;
    *width  = 0;
    *height = 0;
@@ -337,7 +344,7 @@ bool rpng_load_image_argb(const char *path, uint32_t **data, unsigned *width, un
       GOTO_END_ERROR();
 
    // feof() apparently isn't triggered after a seek (IEND).
-   for (long pos = ftell(file); pos < file_len && pos >= 0; pos = ftell(file))
+   for (pos = ftell(file); pos < file_len && pos >= 0; pos = ftell(file))
    {
       struct png_chunk chunk = {0};
       if (!read_chunk_header(file, &chunk))
