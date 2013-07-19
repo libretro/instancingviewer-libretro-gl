@@ -127,9 +127,9 @@ static const char *vertex_shader[] = {
 };
 
 static const char *fragment_shader[] = {
-   "#ifdef GLES \n",
+#ifdef GLES
    "precision mediump float; \n",
-   "#endif",
+#endif
    "varying vec3 normal;",
    "varying vec4 model_pos;",
    "varying vec2 tex_coord;",
