@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <string>
+#include <vector>
 #include "rpng/rpng.h"
 
 #include "gl.hpp"
@@ -27,6 +28,7 @@ using namespace glm;
 #define MAX_HEIGHT 1600
 #endif
 
+static unsigned cube_size = 1;
 static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
 
@@ -47,6 +49,11 @@ struct Vertex
    GLfloat vert[4];
    GLfloat normal[4];
    GLfloat tex[2];
+};
+
+struct Cube
+{
+   struct Vertex vertices[36];
 };
 
 static const Vertex vertex_data[] = {
@@ -107,12 +114,11 @@ static const char *vertex_shader[] = {
    "attribute vec4 aVertex;",
    "attribute vec4 aNormal;",
    "attribute vec2 aTexCoord;",
-   "attribute vec4 aOffset;",
    "varying vec3 normal;",
    "varying vec4 model_pos;",
    "varying vec2 tex_coord;",
    "void main() {",
-   "  model_pos = uM * (aVertex + aOffset);",
+   "  model_pos = uM * aVertex;",
    "  gl_Position = uVP * model_pos;",
    "  vec4 trans_normal = uM * aNormal;",
    "  normal = trans_normal.xyz;",
@@ -182,22 +188,9 @@ static void compile_program(void)
       fprintf(stderr, "Program failed to link!\n");
 }
 
-#define CUBE_SIZE 1
-
 static void setup_vao(void)
 {
-   SYM(glUseProgram)(prog);
-
    SYM(glGenBuffers)(1, &vbo);
-   SYM(glBindBuffer)(GL_ARRAY_BUFFER, vbo);
-   SYM(glBufferData)(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
-
-   SYM(glGenBuffers)(1, &mbo);
-   SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
-   SYM(glBufferData)(GL_ARRAY_BUFFER, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * sizeof(GLfloat) * 4, NULL, GL_STREAM_DRAW);
-
-   SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-   SYM(glUseProgram)(0);
 
    update = true;
 }
@@ -314,7 +307,7 @@ void retro_set_environment(retro_environment_t cb)
       "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1024x1024|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
 #endif
                         {
-         "CUBE_SIZE",
+         "cube_size",
          "Cube size; 1|2|4|8|16|32|64|128" },
       { NULL, NULL },
    };
@@ -416,19 +409,17 @@ static void update_variables(void)
       fprintf(stderr, "Got size: %u x %u.\n", width, height);
    }
    
-#if 0
-   var.key = "CUBE_SIZE";
+   var.key = "cube_size";
    var.value = NULL;
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
    {
-      CUBE_SIZE = atoi(var.value);
+      cube_size = atoi(var.value);
       update = true;
 
       if (!first_init)
          context_reset();
    }
-#endif
 }
 
 void retro_run(void)
@@ -456,11 +447,6 @@ void retro_run(void)
    int tcloc = SYM(glGetAttribLocation)(prog, "aTexCoord");
    SYM(glVertexAttribPointer)(tcloc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, tex)));
    SYM(glEnableVertexAttribArray)(tcloc);
-
-   SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
-   int mloc = SYM(glGetAttribLocation)(prog, "aOffset");
-   SYM(glVertexAttribPointer)(mloc, 4, GL_FLOAT, GL_FALSE, 0, 0);
-   SYM(glEnableVertexAttribArray)(mloc);
 
    SYM(glEnable)(GL_DEPTH_TEST);
    SYM(glEnable)(GL_CULL_FACE);
@@ -491,35 +477,45 @@ void retro_run(void)
    if (update)
    {
       update = false;
-      SYM(glBindBuffer)(GL_ARRAY_BUFFER, mbo);
+      SYM(glBindBuffer)(GL_ARRAY_BUFFER, vbo);
 
-      GLfloat *buf = (GLfloat*)SYM(glMapBufferRange)(GL_ARRAY_BUFFER, 0,
-            CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 4 * sizeof(GLfloat),
-            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      std::vector<Cube> cubes;
+      cubes.resize(cube_size * cube_size * cube_size);
 
-      for (unsigned x = 0; x < CUBE_SIZE; x++)
-         for (unsigned y = 0; y < CUBE_SIZE; y++)
-            for (unsigned z = 0; z < CUBE_SIZE; z++)
+      for (unsigned x = 0; x < cube_size; x++)
+      {
+         for (unsigned y = 0; y < cube_size; y++)
+         {
+            for (unsigned z = 0; z < cube_size; z++)
             {
-               GLfloat *off = buf + 4 * ((CUBE_SIZE * CUBE_SIZE * z) + (CUBE_SIZE * y) + x);
-               off[0] = 4.0f * ((float)x - CUBE_SIZE / 2);
-               off[1] = 4.0f * ((float)y - CUBE_SIZE / 2);
-               off[2] = -100.0f + 4.0f * ((float)z - CUBE_SIZE / 2);
-               SYM(glBufferData)(GL_ARRAY_BUFFER, sizeof(off), off, GL_STATIC_DRAW);
+               Cube &cube = cubes[((cube_size * cube_size * z) + (cube_size * y) + x)];
+
+               float off_x = 4.0f * ((float)x - cube_size / 2);
+               float off_y = 4.0f * ((float)y - cube_size / 2);
+               float off_z = -100.0f + 4.0f * ((float)z - cube_size / 2);
+
+               for (unsigned v = 0; v < 36; v++)
+               {
+                  cube.vertices[v] = vertex_data[indices[v]];
+                  cube.vertices[v].vert[0] += off_x;
+                  cube.vertices[v].vert[1] += off_y;
+                  cube.vertices[v].vert[2] += off_z;
+               }
             }
-      SYM(glUnmapBuffer)(GL_ARRAY_BUFFER);
+         }
+      }
+      SYM(glBufferData)(GL_ARRAY_BUFFER, cube_size * cube_size * cube_size * sizeof(Cube),
+            &cubes[0], GL_STATIC_DRAW);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
    }
    
-   SYM(glBindBuffer)(GL_ARRAY_BUFFER, vbo);
-   SYM(glDrawArrays)(GL_TRIANGLES, 0, 24 * CUBE_SIZE);
+   SYM(glDrawArrays)(GL_TRIANGLES, 0, 36 * cube_size * cube_size * cube_size);
 
    SYM(glUseProgram)(0);
    SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
    SYM(glDisableVertexAttribArray)(vloc);
    SYM(glDisableVertexAttribArray)(nloc);
    SYM(glDisableVertexAttribArray)(tcloc);
-   SYM(glDisableVertexAttribArray)(mloc);
    SYM(glBindTexture)(GL_TEXTURE_2D, 0);
 
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, width, height, 0);
