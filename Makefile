@@ -87,7 +87,7 @@ else
    CFLAGS += -O3
 endif
 
-OBJECTS := libretro.o glsym.o rpng/rpng.o
+OBJECTS := libretro.o glsym.o rpng.o
 CXXFLAGS += -Wall $(fpic)
 CFLAGS += -Wall $(fpic)
 

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include "rpng/rpng.h"
+#include "rpng.h"
 
 #include "gl.hpp"
 #include "glm/glm.hpp"
@@ -200,9 +200,9 @@ static void setup_vao(void)
 
 static GLuint load_texture(const char *path)
 {
-   uint32_t *data;
+   uint8_t *data;
    unsigned width, height;
-   if (!rpng_load_image_argb(path, &data, &width, &height))
+   if (!rpng_load_image_rgba(path, &data, &width, &height))
    {
       fprintf(stderr, "Couldn't load texture: %s\n", path);
       return 0;
@@ -212,13 +212,8 @@ static GLuint load_texture(const char *path)
    SYM(glGenTextures)(1, &tex);
    SYM(glBindTexture)(GL_TEXTURE_2D, tex);
 
-#ifdef GLES
-   SYM(glTexImage2D)(GL_TEXTURE_2D, 0, GL_BGRA_EXT, width, height,
-         0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, data);
-#else
    SYM(glTexImage2D)(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-         0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
-#endif
+         0, GL_RGBA, GL_UNSIGNED_BYTE, data);
    free(data);
 
    SYM(glTexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
