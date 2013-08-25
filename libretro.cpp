@@ -311,7 +311,7 @@ void retro_set_environment(retro_environment_t cb)
          "Cube size; 1|2|4|8|16|32|64|128" },
                         {
          "cube_stride",
-         "Cube size; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
+         "Cube stride; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
       { NULL, NULL },
    };
 
@@ -345,6 +345,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 static bool check_cube_distance_per_dimension(vec3 cube)
 {
+   fprintf(stderr, "cube_distance - x: %.5f, y: %.5f, z: %.5f\n", cube.x, cube.y, cube.z);
    return ((cube.x < 1.0f) && (cube.y < 1.0f) && (cube.z < 1.0f));
 }
 
