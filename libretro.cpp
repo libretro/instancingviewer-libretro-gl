@@ -425,10 +425,11 @@ static void update_variables(void)
    char path[256];
 
    snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/libretro-mupen64plus/mupen64plus_libretro.so");
-   environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path);
-
-   snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
-   environ_cb(RETRO_ENVIRONMENT_EXEC, (void*)&path);
+   if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+   {
+      snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
+      environ_cb(RETRO_ENVIRONMENT_EXEC, (void*)&path);
+   }
 #endif
 }
 
