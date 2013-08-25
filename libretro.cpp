@@ -343,6 +343,35 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
    video_cb = cb;
 }
 
+static bool check_cube_distance_per_dimension(vec3 cube)
+{
+   return ((cube.x < 1.0f) && (cube.y < 1.0f) && (cube.z < 1.0f));
+}
+
+static void hit()
+{
+   /* Works :) */
+   char path[256];
+
+   snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/libretro-mupen64plus/mupen64plus_libretro.so");
+   if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+   {
+      snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
+      environ_cb(RETRO_ENVIRONMENT_EXEC, (void*)&path);
+   }
+}
+
+static void check_collision_cube()
+{
+   float cube_origin = cube_stride * (-cube_size / 2);
+   vec3 closest_cube = round((player_pos - cube_origin) / cube_stride);
+   vec3 closest_cube_pos = cube_origin + closest_cube * cube_stride;
+   vec3 cube_distance = abs(player_pos - closest_cube_pos);
+
+   if (check_cube_distance_per_dimension(cube_distance))
+      hit();
+}
+
 static vec3 check_input()
 {
    input_poll_cb();
@@ -372,6 +401,8 @@ static vec3 check_input()
       player_pos -= s * look_dir_side;
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
       player_pos += s * look_dir_side;
+
+   check_collision_cube();
 
    return look_dir;
 }
@@ -436,17 +467,6 @@ static void update_variables(void)
          context_reset();
    }
 
-#if 0
-   /* Works :) */
-   char path[256];
-
-   snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/libretro-mupen64plus/mupen64plus_libretro.so");
-   if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-   {
-      snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
-      environ_cb(RETRO_ENVIRONMENT_EXEC, (void*)&path);
-   }
-#endif
 }
 
 void retro_run(void)
