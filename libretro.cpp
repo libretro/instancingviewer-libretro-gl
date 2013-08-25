@@ -370,7 +370,7 @@ static void hit()
 
 static void check_collision_cube()
 {
-   float cube_origin = cube_stride * (-cube_size / 2);
+   float cube_origin = cube_stride * ((float)cube_size / -2.0f);
    vec3 closest_cube = round((player_pos - cube_origin) / cube_stride);
    vec3 closest_cube_pos = cube_origin + closest_cube * cube_stride;
    vec3 cube_distance = abs(player_pos - closest_cube_pos);
