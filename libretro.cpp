@@ -364,7 +364,7 @@ static void hit()
    if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
    {
       snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
-      environ_cb(RETRO_ENVIRONMENT_EXEC, (void*)&path);
+      environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
    }
 }
 
@@ -471,6 +471,11 @@ static void update_variables(void)
    {
       cube_stride = atof(var.value);
       update = true;
+
+#if 0
+      if (cube_stride == 4.0f)
+         hit();
+#endif
 
       if (!first_init)
          context_reset();
