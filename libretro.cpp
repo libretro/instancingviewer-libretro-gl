@@ -343,6 +343,12 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
    video_cb = cb;
 }
 
+static bool check_closest_cube(vec3 cube_max, vec3 closest_cube)
+{
+   return (((closest_cube.x > 0.0f) && (closest_cube.y > 0.0f) && (closest_cube.z > 0.0f)) &&
+      ((closest_cube.x < cube_max.x) && (closest_cube.y < cube_max.y) && (closest_cube.z < cube_max.z)));
+}
+
 static bool check_cube_distance_per_dimension(vec3 cube)
 {
    fprintf(stderr, "cube_distance - x: %.5f, y: %.5f, z: %.5f\n", cube.x, cube.y, cube.z);
@@ -368,8 +374,10 @@ static void check_collision_cube()
    vec3 closest_cube = round((player_pos - cube_origin) / cube_stride);
    vec3 closest_cube_pos = cube_origin + closest_cube * cube_stride;
    vec3 cube_distance = abs(player_pos - closest_cube_pos);
+   vec3 cube_size_max = (vec3)(cube_size - 1);
 
-   if (check_cube_distance_per_dimension(cube_distance))
+   if (check_closest_cube(cube_size_max, closest_cube) &&
+         check_cube_distance_per_dimension(cube_distance))
       hit();
 }
 
