@@ -345,18 +345,18 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 static bool check_closest_cube(vec3 cube_max, vec3 closest_cube)
 {
-   return (((closest_cube.x > 0.0f) && (closest_cube.y > 0.0f) && (closest_cube.z > 0.0f)) &&
-      ((closest_cube.x < cube_max.x) && (closest_cube.y < cube_max.y) && (closest_cube.z < cube_max.z)));
+   return true;/*(((closest_cube.x > 0.0f) && (closest_cube.y > 0.0f) && (closest_cube.z > 0.0f)) &&
+      ((closest_cube.x < cube_max.x) && (closest_cube.y < cube_max.y) && (closest_cube.z < cube_max.z)));*/
 }
 
 static bool check_cube_distance_per_dimension(vec3 cube)
 {
-   fprintf(stderr, "cube_distance - x: %.5f, y: %.5f, z: %.5f\n", cube.x, cube.y, cube.z);
-   return ((cube.x < 1.0f) && (cube.y < 1.0f) && (cube.z < 1.0f));
+   return cube.x + cube.y + cube.z < 5.0f;
 }
 
-static void hit()
+static void hit(vec3 cube)
 {
+   (void)cube;
    /* Works :) */
    char path[256];
 
@@ -371,14 +371,21 @@ static void hit()
 static void check_collision_cube()
 {
    float cube_origin = cube_stride * ((float)cube_size / -2.0f);
-   vec3 closest_cube = round((player_pos - cube_origin) / cube_stride);
-   vec3 closest_cube_pos = cube_origin + closest_cube * cube_stride;
-   vec3 cube_distance = abs(player_pos - closest_cube_pos);
-   vec3 cube_size_max = (vec3)(cube_size - 1);
-
+   // emulate cube origin at {0, 0, 0}
+   vec3 shifted_player_pos = player_pos;
+   shifted_player_pos.z += 100;
+   vec3 closest_cube = vec3(0, 0, 0);//round((shifted_player_pos - cube_origin) / cube_stride);
+   vec3 closest_cube_pos = vec3(0, 0, 0);//cube_origin + closest_cube * cube_stride;
+   vec3 cube_distance = abs(shifted_player_pos - closest_cube_pos);
+   vec3 cube_size_max = (vec3)((float)cube_size - 1);
+   fprintf(stderr, "cube_origin: %f\n", cube_origin);
+   fprintf(stderr, "shifted_player_pos: %f %f %f\n", shifted_player_pos.x, shifted_player_pos.y, shifted_player_pos.z);
+   fprintf(stderr, "cube: %f %f %f\n", closest_cube.x, closest_cube.y, closest_cube.z);
+   fprintf(stderr, "cube_pos: %f %f %f\n", closest_cube_pos.x, closest_cube_pos.y, closest_cube_pos.z);
+   fprintf(stderr, "cube_distance: %f %f %f\n", cube_distance.x, cube_distance.y, cube_distance.z);
    if (check_closest_cube(cube_size_max, closest_cube) &&
          check_cube_distance_per_dimension(cube_distance))
-      hit();
+      hit(closest_cube);
 }
 
 static vec3 check_input()
