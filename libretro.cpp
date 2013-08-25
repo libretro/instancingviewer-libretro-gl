@@ -30,6 +30,7 @@ using namespace glm;
 #endif
 
 static unsigned cube_size = 1;
+static float cube_stride = 4.0f;
 static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
 
@@ -308,6 +309,9 @@ void retro_set_environment(retro_environment_t cb)
                         {
          "cube_size",
          "Cube size; 1|2|4|8|16|32|64|128" },
+                        {
+         "cube_stride",
+         "Cube size; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
       { NULL, NULL },
    };
 
@@ -420,6 +424,18 @@ static void update_variables(void)
          context_reset();
    }
 
+   var.key = "cube_stride";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      cube_stride = atof(var.value);
+      update = true;
+
+      if (!first_init)
+         context_reset();
+   }
+
 #if 0
    /* Works :) */
    char path[256];
@@ -500,11 +516,10 @@ void retro_run(void)
             for (unsigned z = 0; z < cube_size; z++)
             {
                Cube &cube = cubes[((cube_size * cube_size * z) + (cube_size * y) + x)];
-               float distance = 4.0f;
 
-               float off_x = distance * ((float)x - cube_size / 2);
-               float off_y = distance * ((float)y - cube_size / 2);
-               float off_z = -100.0f + distance * ((float)z - cube_size / 2);
+               float off_x = cube_stride * ((float)x - cube_size / 2);
+               float off_y = cube_stride * ((float)y - cube_size / 2);
+               float off_z = -100.0f + cube_stride * ((float)z - cube_size / 2);
 
                for (unsigned v = 0; v < 36; v++)
                {
@@ -520,7 +535,7 @@ void retro_run(void)
             &cubes[0], GL_STATIC_DRAW);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
    }
-   
+
    SYM(glDrawArrays)(GL_TRIANGLES, 0, 36 * cube_size * cube_size * cube_size);
 
    SYM(glUseProgram)(0);
