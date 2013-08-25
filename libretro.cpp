@@ -123,7 +123,7 @@ static const char *vertex_shader[] = {
    "  gl_Position = uVP * model_pos;",
    "  vec4 trans_normal = uM * aNormal;",
    "  normal = trans_normal.xyz;",
-   "  tex_coord = aTexCoord;",
+   "  tex_coord = vec2(1.0 - aTexCoord.x, aTexCoord.y);",
    "}",
 };
 
@@ -500,10 +500,11 @@ void retro_run(void)
             for (unsigned z = 0; z < cube_size; z++)
             {
                Cube &cube = cubes[((cube_size * cube_size * z) + (cube_size * y) + x)];
+               float distance = 4.0f;
 
-               float off_x = 4.0f * ((float)x - cube_size / 2);
-               float off_y = 4.0f * ((float)y - cube_size / 2);
-               float off_z = -100.0f + 4.0f * ((float)z - cube_size / 2);
+               float off_x = distance * ((float)x - cube_size / 2);
+               float off_y = distance * ((float)y - cube_size / 2);
+               float off_z = -100.0f + distance * ((float)z - cube_size / 2);
 
                for (unsigned v = 0; v < 36; v++)
                {
