@@ -360,7 +360,7 @@ static bool check_closest_cube(vec3 cube_max, vec3 closest_cube)
 
 static bool check_cube_distance_per_dimension(vec3 cube)
 {
-   return cube.x + cube.y + cube.z < 5.0f;
+   return cube.x * cube.x + cube.y * cube.y + cube.z * cube.z < 25.0f;
 }
 
 static void hit(vec3 cube)
