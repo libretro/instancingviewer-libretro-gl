@@ -29,6 +29,12 @@ using namespace glm;
 #define MAX_HEIGHT 1600
 #endif
 
+#define LAUNCH_CATEGORY_GAME  0
+#define LAUNCH_CATEGORY_MOVIE 1
+#define LAUNCH_CATEGORY_END 2
+
+static unsigned launch_category = 0;
+
 static unsigned cube_size = 1;
 static float cube_stride = 4.0f;
 static unsigned width = BASE_WIDTH;
@@ -312,6 +318,9 @@ void retro_set_environment(retro_environment_t cb)
                         {
          "cube_stride",
          "Cube stride; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
+                        {
+         "launch_category",
+         "Launch category; games|movies" },
       { NULL, NULL },
    };
 
@@ -357,14 +366,26 @@ static bool check_cube_distance_per_dimension(vec3 cube)
 static void hit(vec3 cube)
 {
    (void)cube;
-   /* Works :) */
    char path[256];
 
-   snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/libretro-mupen64plus/mupen64plus_libretro.so");
-   if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+   switch (launch_category)
    {
-      snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
-      environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+      case LAUNCH_CATEGORY_GAME:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/mupen64plus_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
+      case LAUNCH_CATEGORY_MOVIE:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/ffmpeg_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/twinaphex/t_metalgearsolidvtpp_e313_trailer_960x540_2200_m31.mp4");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
    }
 }
 
@@ -417,6 +438,15 @@ static vec3 check_input()
       player_pos -= s * look_dir_side;
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
       player_pos += s * look_dir_side;
+
+   if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT))
+   {
+      launch_category++;
+      if (launch_category == LAUNCH_CATEGORY_END)
+         launch_category = 0;
+      else
+         launch_category++;
+   }
 
    check_collision_cube();
 
@@ -479,10 +509,20 @@ static void update_variables(void)
       cube_stride = atof(var.value);
       update = true;
 
-#if 0
-      if (cube_stride == 4.0f)
-         hit();
-#endif
+      if (!first_init)
+         context_reset();
+   }
+
+   var.key = "launch_category";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      if (strcmp(var.value, "games") == 0)
+         launch_category = LAUNCH_CATEGORY_GAME;
+      else if (strcmp(var.value, "movies") == 0)
+         launch_category = LAUNCH_CATEGORY_MOVIE;
+      update = true;
 
       if (!first_init)
          context_reset();
