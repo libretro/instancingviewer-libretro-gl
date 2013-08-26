@@ -411,6 +411,7 @@ static void check_collision_cube()
 
 static vec3 check_input()
 {
+   static unsigned select_timeout = 0;
    input_poll_cb();
 
    int x = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
@@ -439,14 +440,37 @@ static vec3 check_input()
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
       player_pos += s * look_dir_side;
 
-   if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT))
+   if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT) 
+         && select_timeout == 0)
    {
-      launch_category++;
-      if (launch_category == LAUNCH_CATEGORY_END)
-         launch_category = 0;
+      select_timeout = 180;
+      if (launch_category == LAUNCH_CATEGORY_GAME)
+         launch_category = LAUNCH_CATEGORY_MOVIE;
       else
-         launch_category++;
+         launch_category = LAUNCH_CATEGORY_GAME;
+
+      switch (launch_category)
+      {
+         case LAUNCH_CATEGORY_GAME:
+            {
+               struct retro_message msg = {
+                  "Category: Games",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
+         case LAUNCH_CATEGORY_MOVIE:
+            {
+               struct retro_message msg = {
+                  "Category: Movies",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
+      }
    }
+   else if (select_timeout != 0)
+      select_timeout--;
 
    check_collision_cube();
 
