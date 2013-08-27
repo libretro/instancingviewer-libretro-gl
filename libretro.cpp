@@ -367,6 +367,14 @@ static bool check_cube_distance_per_dimension(vec3 cube)
    return cube.x * cube.x + cube.y * cube.y + cube.z * cube.z < 25.0f;
 }
 
+#ifdef ANDROID
+#define LIB_DIR "/data/app-lib/org.retroarch"
+#define ROM_DIR "/mnt/storage/"
+#else
+#define LIB_DIR "/home/squarepusher/local-repos/libretro-super/dist/unix"
+#define ROM_DIR "/home/squarepusher/roms"
+#endif
+
 static void hit(vec3 cube)
 {
    (void)cube;
@@ -375,50 +383,50 @@ static void hit(vec3 cube)
    switch (launch_category)
    {
       case LAUNCH_CATEGORY_GAME:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/mupen64plus_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "mupen64plus_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/roms/n64/007 - GoldenEye (USA).n64");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "007 - GoldenEye (USA).n64");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
       case LAUNCH_CATEGORY_MOVIE:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/ffmpeg_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "ffmpeg_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/lionking.mp4");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "lionking.mp4");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
       case LAUNCH_CATEGORY_SCENE1:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/scenewalker_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "scenewalker_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/silenthill3_chapel/model.obj");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/silenthill3_chapel/model.obj");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
       case LAUNCH_CATEGORY_SCENE2:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/scenewalker_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "scenewalker_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/Onechanbara - Hospital - by fullmoon/hospital.obj");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Onechanbara - Hospital - by fullmoon/hospital.obj");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
       case LAUNCH_CATEGORY_MODEL1:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/modelviewer_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "modelviewer_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/mazda-3-mps/mazda 3.obj");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/mazda-3-mps/mazda 3.obj");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
       case LAUNCH_CATEGORY_MODEL2:
-         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/modelviewer_libretro.so");
+         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "modelviewer_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/Vanille-working/vanille_obj.obj");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Vanille-working/vanille_obj.obj");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
@@ -455,6 +463,12 @@ static void context_reset(void)
    setup_vao();
    tex = load_texture(texpath.c_str());
 }
+
+#ifdef ANDROID
+#define PICS_HOME "/storage/sdcard1/roms"
+#else
+#define PICS_HOME "/home/squarepusher/roms"
+#endif
 
 static vec3 check_input()
 {
@@ -495,32 +509,32 @@ static vec3 check_input()
       {
          case LAUNCH_CATEGORY_GAME:
             launch_category = LAUNCH_CATEGORY_MOVIE;
-            texpath = "/home/squarepusher/lionking.png";
+            texpath = std::string(PICS_HOME) + "/lionking.png";
             context_reset();
             break;
          case LAUNCH_CATEGORY_MOVIE:
             launch_category = LAUNCH_CATEGORY_SCENE1;
-            texpath = "/home/squarepusher/scene1.png";
+            texpath = std::string(PICS_HOME) + "/scene1.png";
             context_reset();
             break;
          case LAUNCH_CATEGORY_SCENE1:
             launch_category = LAUNCH_CATEGORY_SCENE2;
-            texpath = "/home/squarepusher/scene2.png";
+            texpath = std::string(PICS_HOME) + "/scene2.png";
             context_reset();
             break;
          case LAUNCH_CATEGORY_SCENE2:
             launch_category = LAUNCH_CATEGORY_MODEL1;
-            texpath = "/home/squarepusher/model1.png";
+            texpath = std::string(PICS_HOME) + "/model1.png";
             context_reset();
             break;
          case LAUNCH_CATEGORY_MODEL1:
             launch_category = LAUNCH_CATEGORY_MODEL2;
-            texpath = "/home/squarepusher/model2.png";
+            texpath = std::string(PICS_HOME) + "/model2.png";
             context_reset();
             break;
          default:
             launch_category = LAUNCH_CATEGORY_GAME;
-            texpath = "/home/squarepusher/goldeneye.png";
+            texpath = std::string(PICS_HOME) + "/goldeneye.png";
             context_reset();
       }
 
@@ -642,32 +656,32 @@ static void update_variables(void)
       if (strcmp(var.value, "games") == 0)
       {
          launch_category = LAUNCH_CATEGORY_GAME;
-         texpath = "/home/squarepusher/goldeneye.png";
+         texpath = std::string(PICS_HOME) + "/goldeneye.png";
       }
       else if (strcmp(var.value, "movies") == 0)
       {
          launch_category = LAUNCH_CATEGORY_MOVIE;
-         texpath = "/home/squarepusher/lionking.png";
+         texpath = std::string(PICS_HOME) + "/lionking.png";
       }
       else if (strcmp(var.value, "scene1") == 0)
       {
          launch_category = LAUNCH_CATEGORY_SCENE1;
-         texpath = "/home/squarepusher/scene1.png";
+         texpath = std::string(PICS_HOME) + "/scene1.png";
       }
       else if (strcmp(var.value, "scene2") == 0)
       {
          launch_category = LAUNCH_CATEGORY_SCENE2;
-         texpath = "/home/squarepusher/scene2.png";
+         texpath = std::string(PICS_HOME) + "/scene2.png";
       }
       else if (strcmp(var.value, "model1") == 0)
       {
          launch_category = LAUNCH_CATEGORY_MODEL1;
-         texpath = "/home/squarepusher/model1.png";
+         texpath = std::string(PICS_HOME) + "/model1.png";
       }
       else if (strcmp(var.value, "model2") == 0)
       {
          launch_category = LAUNCH_CATEGORY_MODEL2;
-         texpath = "/home/squarepusher/model2.png";
+         texpath = std::string(PICS_HOME) + "/model2.png";
       }
       update = true;
 
