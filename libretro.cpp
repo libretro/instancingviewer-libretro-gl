@@ -378,9 +378,11 @@ static bool check_cube_distance_per_dimension(vec3 cube)
 #ifdef ANDROID
 #define LIB_DIR "/data/app-lib/org.retroarch-1"
 #define ROM_DIR "/storage/sdcard1/roms"
+#define FORMAT_STR "%s/libretro_%s.so"
 #else
 #define LIB_DIR "/home/squarepusher/local-repos/libretro-super/dist/unix"
 #define ROM_DIR "/home/squarepusher/roms"
+#define FORMAT_STR "%s/%s_libretro.so"
 #endif
 
 static void hit(vec3 cube)
@@ -391,7 +393,7 @@ static void hit(vec3 cube)
    switch (launch_category)
    {
       case LAUNCH_CATEGORY_GAME:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "mupen64plus_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "mupen64plus");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "n64/007 - GoldenEye (USA).n64");
@@ -400,7 +402,7 @@ static void hit(vec3 cube)
          break;
 #if !defined(ANDROID) && !defined(IOS)
       case LAUNCH_CATEGORY_MOVIE:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "ffmpeg_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "ffmpeg");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "lionking.mp4");
@@ -409,7 +411,7 @@ static void hit(vec3 cube)
          break;
 #endif
       case LAUNCH_CATEGORY_SCENE1:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "scenewalker_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "scenewalker");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/silenthill3_chapel/model.obj");
@@ -417,7 +419,7 @@ static void hit(vec3 cube)
          }
          break;
       case LAUNCH_CATEGORY_SCENE2:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "scenewalker_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "scenewalker");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Onechanbara - Hospital - by fullmoon/hospital.obj");
@@ -425,7 +427,7 @@ static void hit(vec3 cube)
          }
          break;
       case LAUNCH_CATEGORY_MODEL1:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "modelviewer_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "modelviewer");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/mazda-3-mps/mazda 3.obj");
@@ -433,7 +435,7 @@ static void hit(vec3 cube)
          }
          break;
       case LAUNCH_CATEGORY_MODEL2:
-         snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "modelviewer_libretro.so");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "modelviewer");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
             snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Vanille-working/vanille_obj.obj");
