@@ -29,13 +29,17 @@ using namespace glm;
 #define MAX_HEIGHT 1600
 #endif
 
-#define LAUNCH_CATEGORY_GAME  0
-#define LAUNCH_CATEGORY_MOVIE 1
-#define LAUNCH_CATEGORY_SCENE1 2
-#define LAUNCH_CATEGORY_SCENE2 3
-#define LAUNCH_CATEGORY_MODEL1 4
-#define LAUNCH_CATEGORY_MODEL2 5
-#define LAUNCH_CATEGORY_END 6
+enum {
+   LAUNCH_CATEGORY_GAME = 0,
+#if !defined(ANDROID) && !defined(IOS)
+   LAUNCH_CATEGORY_MOVIE,
+#endif
+   LAUNCH_CATEGORY_SCENE1,
+   LAUNCH_CATEGORY_SCENE2,
+   LAUNCH_CATEGORY_MODEL1,
+   LAUNCH_CATEGORY_MODEL2,
+   LAUNCH_CATEGORY_END
+};
 
 static unsigned launch_category = 0;
 
@@ -324,7 +328,11 @@ void retro_set_environment(retro_environment_t cb)
          "Cube stride; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
                         {
          "launch_category",
+#if !defined(ANDROID) || !defined(IOS)
          "Launch category; games|movies|scene1|scene2|model1|model2" },
+#else
+         "Launch category; games|scene1|scene2|model1|model2" },
+#endif
       { NULL, NULL },
    };
 
@@ -386,10 +394,11 @@ static void hit(vec3 cube)
          snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "mupen64plus_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "007 - GoldenEye (USA).n64");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "n64/007 - GoldenEye (USA).n64");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
+#if !defined(ANDROID) && !defined(IOS)
       case LAUNCH_CATEGORY_MOVIE:
          snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "ffmpeg_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
@@ -398,6 +407,7 @@ static void hit(vec3 cube)
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
+#endif
       case LAUNCH_CATEGORY_SCENE1:
          snprintf(path, sizeof(path), "%s/%s", LIB_DIR, "scenewalker_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
@@ -507,6 +517,7 @@ static vec3 check_input()
       select_timeout = 180;
       switch (launch_category)
       {
+#if !defined(ANDROID) && !defined(IOS)
          case LAUNCH_CATEGORY_GAME:
             launch_category = LAUNCH_CATEGORY_MOVIE;
             texpath = std::string(PICS_HOME) + "/lionking.png";
@@ -517,6 +528,13 @@ static vec3 check_input()
             texpath = std::string(PICS_HOME) + "/scene1.png";
             context_reset();
             break;
+#else
+         case LAUNCH_CATEGORY_GAME:
+            launch_category = LAUNCH_CATEGORY_SCENE1;
+            texpath = std::string(PICS_HOME) + "/scene1.png";
+            context_reset();
+            break;
+#endif
          case LAUNCH_CATEGORY_SCENE1:
             launch_category = LAUNCH_CATEGORY_SCENE2;
             texpath = std::string(PICS_HOME) + "/scene2.png";
@@ -548,6 +566,7 @@ static vec3 check_input()
                environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
             }
             break;
+#if !defined(ANDROID) && !defined(IOS)
          case LAUNCH_CATEGORY_MOVIE:
             {
                struct retro_message msg = {
@@ -556,6 +575,7 @@ static vec3 check_input()
                environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
             }
             break;
+#endif
          case LAUNCH_CATEGORY_SCENE1:
             {
                struct retro_message msg = {
@@ -658,11 +678,13 @@ static void update_variables(void)
          launch_category = LAUNCH_CATEGORY_GAME;
          texpath = std::string(PICS_HOME) + "/goldeneye.png";
       }
+#if !defined(ANDROID) && !defined(IOS)
       else if (strcmp(var.value, "movies") == 0)
       {
          launch_category = LAUNCH_CATEGORY_MOVIE;
          texpath = std::string(PICS_HOME) + "/lionking.png";
       }
+#endif
       else if (strcmp(var.value, "scene1") == 0)
       {
          launch_category = LAUNCH_CATEGORY_SCENE1;
