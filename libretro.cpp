@@ -31,7 +31,11 @@ using namespace glm;
 
 #define LAUNCH_CATEGORY_GAME  0
 #define LAUNCH_CATEGORY_MOVIE 1
-#define LAUNCH_CATEGORY_END 2
+#define LAUNCH_CATEGORY_SCENE1 2
+#define LAUNCH_CATEGORY_SCENE2 3
+#define LAUNCH_CATEGORY_MODEL1 4
+#define LAUNCH_CATEGORY_MODEL2 5
+#define LAUNCH_CATEGORY_END 6
 
 static unsigned launch_category = 0;
 
@@ -320,7 +324,7 @@ void retro_set_environment(retro_environment_t cb)
          "Cube stride; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
                         {
          "launch_category",
-         "Launch category; games|movies" },
+         "Launch category; games|movies|scene1|scene2|model1|model2" },
       { NULL, NULL },
    };
 
@@ -382,7 +386,39 @@ static void hit(vec3 cube)
          snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/ffmpeg_libretro.so");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "/home/twinaphex/t_metalgearsolidvtpp_e313_trailer_960x540_2200_m31.mp4");
+            snprintf(path, sizeof(path), "/home/squarepusher/lionking.mp4");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
+      case LAUNCH_CATEGORY_SCENE1:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/scenewalker_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/silenthill3_chapel/model.obj");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
+      case LAUNCH_CATEGORY_SCENE2:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/scenewalker_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/Onechanbara - Hospital - by fullmoon/hospital.obj");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
+      case LAUNCH_CATEGORY_MODEL1:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/modelviewer_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/mazda-3-mps/mazda 3.obj");
+            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
+         }
+         break;
+      case LAUNCH_CATEGORY_MODEL2:
+         snprintf(path, sizeof(path), "/home/squarepusher/local-repos/libretro-super/dist/unix/modelviewer_libretro.so");
+         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
+         {
+            snprintf(path, sizeof(path), "/home/squarepusher/roms/GLModelViewer/models/Vanille-working/vanille_obj.obj");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
@@ -407,6 +443,17 @@ static void check_collision_cube()
    if (check_closest_cube(cube_size_max, closest_cube) &&
          check_cube_distance_per_dimension(cube_distance))
       hit(closest_cube);
+}
+
+static void context_reset(void)
+{
+   fprintf(stderr, "Context reset!\n");
+
+   GL::set_function_cb(hw_render.get_proc_address);
+   GL::init_symbol_map();
+   compile_program();
+   setup_vao();
+   tex = load_texture(texpath.c_str());
 }
 
 static vec3 check_input()
@@ -444,10 +491,38 @@ static vec3 check_input()
          && select_timeout == 0)
    {
       select_timeout = 180;
-      if (launch_category == LAUNCH_CATEGORY_GAME)
-         launch_category = LAUNCH_CATEGORY_MOVIE;
-      else
-         launch_category = LAUNCH_CATEGORY_GAME;
+      switch (launch_category)
+      {
+         case LAUNCH_CATEGORY_GAME:
+            launch_category = LAUNCH_CATEGORY_MOVIE;
+            texpath = "/home/squarepusher/lionking.png";
+            context_reset();
+            break;
+         case LAUNCH_CATEGORY_MOVIE:
+            launch_category = LAUNCH_CATEGORY_SCENE1;
+            texpath = "/home/squarepusher/scene1.png";
+            context_reset();
+            break;
+         case LAUNCH_CATEGORY_SCENE1:
+            launch_category = LAUNCH_CATEGORY_SCENE2;
+            texpath = "/home/squarepusher/scene2.png";
+            context_reset();
+            break;
+         case LAUNCH_CATEGORY_SCENE2:
+            launch_category = LAUNCH_CATEGORY_MODEL1;
+            texpath = "/home/squarepusher/model1.png";
+            context_reset();
+            break;
+         case LAUNCH_CATEGORY_MODEL1:
+            launch_category = LAUNCH_CATEGORY_MODEL2;
+            texpath = "/home/squarepusher/model2.png";
+            context_reset();
+            break;
+         default:
+            launch_category = LAUNCH_CATEGORY_GAME;
+            texpath = "/home/squarepusher/goldeneye.png";
+            context_reset();
+      }
 
       switch (launch_category)
       {
@@ -467,6 +542,38 @@ static vec3 check_input()
                environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
             }
             break;
+         case LAUNCH_CATEGORY_SCENE1:
+            {
+               struct retro_message msg = {
+                  "Category: Scene 1",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
+         case LAUNCH_CATEGORY_SCENE2:
+            {
+               struct retro_message msg = {
+                  "Category: Scene 2",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
+         case LAUNCH_CATEGORY_MODEL1:
+            {
+               struct retro_message msg = {
+                  "Category: Cars",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
+         case LAUNCH_CATEGORY_MODEL2:
+            {
+               struct retro_message msg = {
+                  "Category: Models",
+                  180 };
+               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+            }
+            break;
       }
    }
    else if (select_timeout != 0)
@@ -477,16 +584,6 @@ static vec3 check_input()
    return look_dir;
 }
 
-static void context_reset(void)
-{
-   fprintf(stderr, "Context reset!\n");
-
-   GL::set_function_cb(hw_render.get_proc_address);
-   GL::init_symbol_map();
-   compile_program();
-   setup_vao();
-   tex = load_texture(texpath.c_str());
-}
 
 static bool first_init = true;
 
@@ -543,9 +640,35 @@ static void update_variables(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
    {
       if (strcmp(var.value, "games") == 0)
+      {
          launch_category = LAUNCH_CATEGORY_GAME;
+         texpath = "/home/squarepusher/goldeneye.png";
+      }
       else if (strcmp(var.value, "movies") == 0)
+      {
          launch_category = LAUNCH_CATEGORY_MOVIE;
+         texpath = "/home/squarepusher/lionking.png";
+      }
+      else if (strcmp(var.value, "scene1") == 0)
+      {
+         launch_category = LAUNCH_CATEGORY_SCENE1;
+         texpath = "/home/squarepusher/scene1.png";
+      }
+      else if (strcmp(var.value, "scene2") == 0)
+      {
+         launch_category = LAUNCH_CATEGORY_SCENE2;
+         texpath = "/home/squarepusher/scene2.png";
+      }
+      else if (strcmp(var.value, "model1") == 0)
+      {
+         launch_category = LAUNCH_CATEGORY_MODEL1;
+         texpath = "/home/squarepusher/model1.png";
+      }
+      else if (strcmp(var.value, "model2") == 0)
+      {
+         launch_category = LAUNCH_CATEGORY_MODEL2;
+         texpath = "/home/squarepusher/model2.png";
+      }
       update = true;
 
       if (!first_init)
