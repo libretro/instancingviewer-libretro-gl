@@ -376,8 +376,8 @@ static bool check_cube_distance_per_dimension(vec3 cube)
 }
 
 #ifdef ANDROID
-#define LIB_DIR "/data/app-lib/org.retroarch"
-#define ROM_DIR "/mnt/storage/"
+#define LIB_DIR "/data/app-lib/org.retroarch-1"
+#define ROM_DIR "/storage/sdcard1/roms"
 #else
 #define LIB_DIR "/home/squarepusher/local-repos/libretro-super/dist/unix"
 #define ROM_DIR "/home/squarepusher/roms"
