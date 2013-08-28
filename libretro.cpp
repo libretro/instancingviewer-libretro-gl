@@ -516,7 +516,7 @@ static vec3 check_input()
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT) 
          && select_timeout == 0)
    {
-      select_timeout = 180;
+      select_timeout = 30;
       switch (launch_category)
       {
 #if !defined(ANDROID) && !defined(IOS)
