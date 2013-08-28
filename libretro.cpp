@@ -393,10 +393,10 @@ static void hit(vec3 cube)
    switch (launch_category)
    {
       case LAUNCH_CATEGORY_GAME:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "mupen64plus");
+         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "pcsx_rearmed");
          if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
          {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "n64/007 - GoldenEye (USA).n64");
+            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "tombraider.bin");
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
@@ -554,7 +554,7 @@ static vec3 check_input()
             break;
          default:
             launch_category = LAUNCH_CATEGORY_GAME;
-            texpath = std::string(PICS_HOME) + "/goldeneye.png";
+            texpath = std::string(PICS_HOME) + "/tombraider.png";
             context_reset();
       }
 
@@ -678,7 +678,7 @@ static void update_variables(void)
       if (strcmp(var.value, "games") == 0)
       {
          launch_category = LAUNCH_CATEGORY_GAME;
-         texpath = std::string(PICS_HOME) + "/goldeneye.png";
+         texpath = std::string(PICS_HOME) + "/tombraider.png";
       }
 #if !defined(ANDROID) && !defined(IOS)
       else if (strcmp(var.value, "movies") == 0)
