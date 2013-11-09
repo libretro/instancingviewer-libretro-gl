@@ -1,4 +1,8 @@
 
+ifneq ($(EMSCRIPTEN),)
+   platform = emscripten
+endif
+
 ifeq ($(platform),)
 platform = unix
 ifeq ($(shell uname -a),)
@@ -69,6 +73,9 @@ else ifeq ($(platform), ios)
    DEFINES += -DIOS
    CFLAGS += $(DEFINES)
    CXXFLAGS += $(DEFINES)
+else ifeq ($(platform), emscripten)
+   TARGET := $(TARGET_NAME)_libretro_emscripten.bc
+   GLES := 1
 else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
@@ -82,6 +89,9 @@ CFLAGS += -std=gnu99
 ifeq ($(DEBUG), 1)
    CXXFLAGS += -O0 -g
    CFLAGS += -O0 -g
+else ifeq ($(platform), emscripten)
+   CXXFLAGS += -O2
+   CFLAGS += -O2
 else
    CXXFLAGS += -O3
    CFLAGS += -O3
@@ -118,4 +128,5 @@ clean:
 	rm -f $(OBJECTS) $(TARGET)
 
 .PHONY: clean
+
 

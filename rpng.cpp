@@ -17,6 +17,8 @@
 
 #ifdef WANT_MINIZ
 #include "../../deps/miniz/zlib.h"
+#elif defined(EMSCRIPTEN)
+#include "miniz.h"
 #else
 #include <zlib.h>
 #endif

@@ -1,16 +1,18 @@
 #ifndef SHARED_HPP__
 #define SHARED_HPP__
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(EMSCRIPTEN)
 #include <memory>
+#ifdef _MSC_VER
 #define snprintf _snprintf
+#endif
 #else
 #include <tr1/memory>
 #endif
 
 #if defined(__QNX__) || defined(__CELLOS_LV2__)
 namespace std1 = compat;
-#else
+#elif !defined(EMSCRIPTEN)
 namespace std1 = std::tr1;
 #endif
 

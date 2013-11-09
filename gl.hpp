@@ -28,7 +28,7 @@
 #include "libretro.h"
 #include "shared.hpp"
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #define decltype(type) typeof(type)
 #endif
 
