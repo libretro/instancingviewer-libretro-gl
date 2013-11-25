@@ -73,6 +73,16 @@ else ifeq ($(platform), ios)
    DEFINES += -DIOS
    CFLAGS += $(DEFINES)
    CXXFLAGS += $(DEFINES)
+   INCFLAGS = -Iinclude/compat
+else ifeq ($(platform), qnx)
+   TARGET := $(TARGET_NAME)_libretro_qnx.so
+   fpic := -fPIC
+   SHARED := -lcpp -lm -shared -Wl,-version-script=link.T -Wl,-no-undefined
+   CXX = QCC -Vgcc_ntoarmv7le_cpp
+   AR = QCC -Vgcc_ntoarmv7le
+   GLES = 1
+   INCFLAGS = -Iinclude/compat
+   LIBS := -lz
 else ifeq ($(platform), emscripten)
    TARGET := $(TARGET_NAME)_libretro_emscripten.bc
    GLES := 1
@@ -100,6 +110,7 @@ endif
 OBJECTS := libretro.o glsym.o rpng.o
 CXXFLAGS += -Wall $(fpic)
 CFLAGS += -Wall $(fpic)
+CXXFLAGS += $(INCFLAGS)
 
 LIBS += -lz
 ifeq ($(GLES), 1)
