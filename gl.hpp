@@ -45,7 +45,7 @@
 #include "libretro.h"
 #include "shared.hpp"
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) || defined(__clang__) && defined(OSX)
 #define decltype(type) typeof(type)
 #endif
 
