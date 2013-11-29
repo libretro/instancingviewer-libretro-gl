@@ -69,11 +69,11 @@ else ifeq ($(platform), ios)
    GLES := 1
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGLES
-   CC = clang -arch armv7 -isysroot $(IOSSDK)
-   CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
+   CC = clang -arch armv7 -isysroot $(IOSSDK) -miphoneos-version-min=5.0
+   CXX = clang++ -arch armv7 -isysroot $(IOSSDK) -miphoneos-version-min=5.0
    DEFINES += -DIOS
-   CFLAGS += $(DEFINES)
-   CXXFLAGS += $(DEFINES)
+   CFLAGS += $(DEFINES) -miphoneos-version-min=5.0
+   CXXFLAGS += $(DEFINES) -miphoneos-version-min=5.0
    INCFLAGS = -Iinclude/compat
 else ifeq ($(platform), qnx)
    TARGET := $(TARGET_NAME)_libretro_qnx.so
