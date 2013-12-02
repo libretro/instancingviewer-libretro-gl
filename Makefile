@@ -34,7 +34,10 @@ else ifneq (,$(findstring osx,$(platform)))
    fpic := -fPIC
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGL
-   CXXFLAGS += -DOSX
+   DEFINES += -DOSX
+   CFLAGS += $(DEFINES)
+   CXXFLAGS += $(DEFINES)
+   INCFLAGS = -Iinclude/compat
 else ifneq (,$(findstring armv,$(platform)))
    CC = gcc
    CXX = g++
