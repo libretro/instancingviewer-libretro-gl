@@ -2,6 +2,7 @@
  *  InstancingViewer Tech demo
  *  Copyright (C) 2013 - Hans-Kristian Arntzen
  *  Copyright (C) 2013 - Daniel De Matteis
+ *  Copyright (C) 2013 - Michael Lelli
  *
  *  InstancingViewer is free software: you can redistribute it and/or modify it under the terms
  *  of the GNU General Public License as published by the Free Software Found-
@@ -33,6 +34,7 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 static struct retro_hw_render_callback hw_render;
+static struct retro_camera_callback camera_cb;
 
 using namespace glm;
 
@@ -46,30 +48,48 @@ using namespace glm;
 #define MAX_HEIGHT 1600
 #endif
 
+#ifndef GL_BGRA_EXT
+#define GL_BGRA_EXT 0x80E1
+#endif
+
+#ifndef GL_UNPACK_ROW_LENGTH
+#define GL_UNPACK_ROW_LENGTH  0x0CF2
+#endif
+
+#ifdef GLES
+#define INTERNAL_FORMAT GL_BGRA_EXT
+#define TEX_TYPE        GL_BGRA_EXT
+#define TEX_FORMAT      GL_UNSIGNED_BYTE
+#else
+#define INTERNAL_FORMAT GL_RGBA
+#define TEX_TYPE        GL_BGRA
+#define TEX_FORMAT      GL_UNSIGNED_INT_8_8_8_8_REV
+#endif
+
+#if 0
 enum {
    LAUNCH_CATEGORY_GAME = 0,
-#if !defined(ANDROID) && !defined(IOS)
    LAUNCH_CATEGORY_MOVIE,
-#endif
-   LAUNCH_CATEGORY_SCENE1,
-   LAUNCH_CATEGORY_SCENE2,
-   LAUNCH_CATEGORY_MODEL1,
-   LAUNCH_CATEGORY_MODEL2,
    LAUNCH_CATEGORY_END
 };
 
 static unsigned launch_category = 0;
+#endif
 
 static unsigned cube_size = 1;
 static float cube_stride = 4.0f;
 static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
+static bool camera_use = false;
+static bool support_unpack_row_length;
+static uint8_t *convert_buffer;
 
 static std::string texpath;
 
 static GLuint prog;
 static GLuint vbo;
 static GLuint tex;
+static GLuint g_texture_target = GL_TEXTURE_2D;
 static bool update;
 
 static vec3 player_pos;
@@ -88,6 +108,7 @@ struct Cube
 {
    struct Vertex vertices[36];
 };
+
 
 static const Vertex vertex_data[] = {
    { { -1, -1, -1, 1 }, { 0, 0, -1, 0 }, { 0, 0 } }, // Front
@@ -120,6 +141,40 @@ static const Vertex vertex_data[] = {
    { { -1, -1, -1, 1 }, { 0, -1, 0, 0 }, { 0, 1 } },
    { {  1, -1, -1, 1 }, { 0, -1, 0, 0 }, { 1, 1 } },
 };
+
+static const Vertex vertex_data_camera[] = {
+   { { -1, -1, -1, 1 }, { 0, 0, -1, 0 }, { 0, 1 } }, // Front
+   { {  1, -1, -1, 1 }, { 0, 0, -1, 0 }, { 1, 1 } },
+   { { -1,  1, -1, 1 }, { 0, 0, -1, 0 }, { 0, 0 } },
+   { {  1,  1, -1, 1 }, { 0, 0, -1, 0 }, { 1, 0 } },
+
+   { {  1, -1,  1, 1 }, { 0, 0,  1, 0 }, { 0, 1 } }, // Back
+   { { -1, -1,  1, 1 }, { 0, 0,  1, 0 }, { 1, 1 } },
+   { {  1,  1,  1, 1 }, { 0, 0,  1, 0 }, { 0, 0 } },
+   { { -1,  1,  1, 1 }, { 0, 0,  1, 0 }, { 1, 0 } },
+   
+   { { -1, -1,  1, 1 }, { -1, 0, 0, 0 }, { 0, 1 } }, // Left
+   { { -1, -1, -1, 1 }, { -1, 0, 0, 0 }, { 1, 1 } },
+   { { -1,  1,  1, 1 }, { -1, 0, 0, 0 }, { 0, 0 } },
+   { { -1,  1, -1, 1 }, { -1, 0, 0, 0 }, { 1, 0 } },
+
+   { { 1, -1, -1, 1 }, { 1, 0, 0, 0 }, { 0, 1 } }, // Right
+   { { 1, -1,  1, 1 }, { 1, 0, 0, 0 }, { 1, 1 } },
+   { { 1,  1, -1, 1 }, { 1, 0, 0, 0 }, { 0, 0 } },
+   { { 1,  1,  1, 1 }, { 1, 0, 0, 0 }, { 1, 0 } },
+
+   { { -1,  1, -1, 1 }, { 0, 1, 0, 0 }, { 0, 1 } }, // Top
+   { {  1,  1, -1, 1 }, { 0, 1, 0, 0 }, { 1, 1 } },
+   { { -1,  1,  1, 1 }, { 0, 1, 0, 0 }, { 0, 0 } },
+   { {  1,  1,  1, 1 }, { 0, 1, 0, 0 }, { 1, 0 } },
+
+   { { -1, -1,  1, 1 }, { 0, -1, 0, 0 }, { 0, 1 } }, // Bottom
+   { {  1, -1,  1, 1 }, { 0, -1, 0, 0 }, { 1, 1 } },
+   { { -1, -1, -1, 1 }, { 0, -1, 0, 0 }, { 0, 0 } },
+   { {  1, -1, -1, 1 }, { 0, -1, 0, 0 }, { 1, 0 } },
+};
+
+static const Vertex *vertex_data_ptr = vertex_data;
 
 static const GLubyte indices[] = {
    0, 1, 2, // Front
@@ -160,6 +215,9 @@ static const char *vertex_shader[] = {
 };
 
 static const char *fragment_shader[] = {
+#ifdef ANDROID
+   "#extension GL_OES_EGL_image_external : require\n"
+#endif
 #ifdef GLES
    "precision mediump float; \n",
 #endif
@@ -168,7 +226,12 @@ static const char *fragment_shader[] = {
    "varying vec2 tex_coord;",
    "uniform vec3 light_pos;",
    "uniform vec4 ambient_light;",
+#ifdef ANDROID
+   // TODO - some kind of switching mechanism so we can switch between samplerExternalOES and sampler2D
+   "uniform samplerExternalOES uTexture;",
+#else
    "uniform sampler2D uTexture;",
+#endif
 
    "void main() {",
    "  vec3 diff = light_pos - model_pos.xyz;",
@@ -255,10 +318,12 @@ static GLuint load_texture(const char *path)
 }
 
 void retro_init(void)
-{}
+{
+}
 
 void retro_deinit(void)
-{}
+{
+}
 
 unsigned retro_api_version(void)
 {
@@ -275,7 +340,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "InstancingViewer GL";
-   info->library_version  = "v2";
+   info->library_version  = "v3";
    info->need_fullpath    = false;
    info->valid_extensions = "png";
 }
@@ -309,7 +374,7 @@ void retro_stderr(const char *str)
 #if defined(_WIN32)
    OutputDebugStringA(str);
 #elif defined(ANDROID)
-   __android_log_print(ANDROID_LOG_INFO, "ModelViewer: ", "%s", str);
+   __android_log_print(ANDROID_LOG_INFO, "InstancingViewer: ", "%s", str);
 #else
    fputs(str, stderr);
 #endif
@@ -325,31 +390,34 @@ void retro_stderr_print(const char *fmt, ...)
    retro_stderr(buf);
 }
 
-
 void retro_set_environment(retro_environment_t cb)
 {
    environ_cb = cb;
 
    struct retro_variable variables[] = {
       { "resolution",
-#ifdef GLES
-         "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768" },
-#else
-      "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1024x1024|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
+         "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768"
+#ifndef GLES
+            "1024x1024|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600"
 #endif
-                        {
+      },
+      {
          "cube_size",
          "Cube size; 1|2|4|8|16|32|64|128" },
-                        {
+      {
          "cube_stride",
          "Cube stride; 2.0|3.0|4.0|5.0|6.0|7.0|8.0" },
-                        {
+#if 0
+      {
          "launch_category",
-#if !defined(ANDROID) || !defined(IOS)
-         "Launch category; games|movies|scene1|scene2|model1|model2" },
-#else
          "Launch category; games|scene1|scene2|model1|model2" },
 #endif
+      {
+         "camera-use",
+         "Camera Enable; false|true" },
+      {
+         "camera-type",
+         "Camera FB Type; texture|raw framebuffer" },
       { NULL, NULL },
    };
 
@@ -383,8 +451,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 static bool check_closest_cube(vec3 cube_max, vec3 closest_cube)
 {
-   return true;/*(((closest_cube.x > 0.0f) && (closest_cube.y > 0.0f) && (closest_cube.z > 0.0f)) &&
-      ((closest_cube.x < cube_max.x) && (closest_cube.y < cube_max.y) && (closest_cube.z < cube_max.z)));*/
+   return true;
 }
 
 static bool check_cube_distance_per_dimension(vec3 cube)
@@ -392,11 +459,7 @@ static bool check_cube_distance_per_dimension(vec3 cube)
    return cube.x * cube.x + cube.y * cube.y + cube.z * cube.z < 25.0f;
 }
 
-#ifdef ANDROID
-#define LIB_DIR "/data/app-lib/org.retroarch-1"
-#define ROM_DIR "/storage/sdcard1/roms"
-#define FORMAT_STR "%s/libretro_%s.so"
-#else
+#if 0
 #define LIB_DIR "/home/squarepusher/local-repos/libretro-super/dist/unix"
 #define ROM_DIR "/home/squarepusher/roms"
 #define FORMAT_STR "%s/%s_libretro.so"
@@ -405,6 +468,7 @@ static bool check_cube_distance_per_dimension(vec3 cube)
 static void hit(vec3 cube)
 {
    (void)cube;
+#if 0
    char path[256];
 
    switch (launch_category)
@@ -417,54 +481,13 @@ static void hit(vec3 cube)
             environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
          }
          break;
-#if !defined(ANDROID) && !defined(IOS)
-      case LAUNCH_CATEGORY_MOVIE:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "ffmpeg");
-         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-         {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "lionking.mp4");
-            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
-         }
-         break;
-#endif
-      case LAUNCH_CATEGORY_SCENE1:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "scenewalker");
-         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-         {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/silenthill3_chapel/model.obj");
-            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
-         }
-         break;
-      case LAUNCH_CATEGORY_SCENE2:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "scenewalker");
-         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-         {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Onechanbara - Hospital - by fullmoon/hospital.obj");
-            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
-         }
-         break;
-      case LAUNCH_CATEGORY_MODEL1:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "modelviewer");
-         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-         {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/mazda-3-mps/mazda 3.obj");
-            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
-         }
-         break;
-      case LAUNCH_CATEGORY_MODEL2:
-         snprintf(path, sizeof(path), FORMAT_STR, LIB_DIR, "modelviewer");
-         if (environ_cb(RETRO_ENVIRONMENT_SET_LIBRETRO_PATH, (void*)&path))
-         {
-            snprintf(path, sizeof(path), "%s/%s", ROM_DIR, "models/Vanille-working/vanille_obj.obj");
-            environ_cb(RETRO_ENVIRONMENT_EXEC_ESCAPE, (void*)&path);
-         }
-         break;
    }
+#endif
 }
 
 static void check_collision_cube()
 {
-   float cube_origin = cube_stride * ((float)cube_size / -2.0f);
+   //float cube_origin = cube_stride * ((float)cube_size / -2.0f);
    // emulate cube origin at {0, 0, 0}
    vec3 shifted_player_pos = player_pos;
    shifted_player_pos.z += 100;
@@ -472,11 +495,10 @@ static void check_collision_cube()
    vec3 closest_cube_pos = vec3(0, 0, 0);//cube_origin + closest_cube * cube_stride;
    vec3 cube_distance = abs(shifted_player_pos - closest_cube_pos);
    vec3 cube_size_max = (vec3)((float)cube_size - 1);
-   fprintf(stderr, "cube_origin: %f\n", cube_origin);
-   fprintf(stderr, "shifted_player_pos: %f %f %f\n", shifted_player_pos.x, shifted_player_pos.y, shifted_player_pos.z);
-   fprintf(stderr, "cube: %f %f %f\n", closest_cube.x, closest_cube.y, closest_cube.z);
-   fprintf(stderr, "cube_pos: %f %f %f\n", closest_cube_pos.x, closest_cube_pos.y, closest_cube_pos.z);
-   fprintf(stderr, "cube_distance: %f %f %f\n", cube_distance.x, cube_distance.y, cube_distance.z);
+   //fprintf(stderr, "shifted_player_pos: %f %f %f\n", shifted_player_pos.x, shifted_player_pos.y, shifted_player_pos.z);
+   //fprintf(stderr, "cube: %f %f %f\n", closest_cube.x, closest_cube.y, closest_cube.z);
+   //fprintf(stderr, "cube_pos: %f %f %f\n", closest_cube_pos.x, closest_cube_pos.y, closest_cube_pos.z);
+   //fprintf(stderr, "cube_distance: %f %f %f\n", cube_distance.x, cube_distance.y, cube_distance.z);
    if (check_closest_cube(cube_size_max, closest_cube) &&
          check_cube_distance_per_dimension(cube_distance))
       hit(closest_cube);
@@ -490,18 +512,136 @@ static void context_reset(void)
    GL::init_symbol_map();
    compile_program();
    setup_vao();
-   tex = load_texture(texpath.c_str());
+   if (camera_use)
+   {
+      tex = 0;
+   }
+   else
+      tex = load_texture(texpath.c_str());
 }
 
+static void camera_initialized(void)
+{
+   camera_cb.start();
+}
+
+static void camera_gl_callback(unsigned texture_id, unsigned texture_target, const float *affine)
+{
+   g_texture_target = texture_target;
+   // TODO: support GL_TEXTURE_RECTANGLE and others?
+   if (texture_target == GL_TEXTURE_2D)
+      tex = texture_id;
 #ifdef ANDROID
-#define PICS_HOME "/storage/sdcard1/roms"
-#else
-#define PICS_HOME "/home/squarepusher/roms"
+   else if (texture_target == GL_TEXTURE_EXTERNAL_OES)
+      tex = texture_id;
 #endif
+}
+
+static void camera_raw_fb_callback(const uint32_t *buffer, unsigned width, unsigned height, size_t pitch)
+{
+   unsigned base_size = 4;
+   unsigned h;
+
+   if (!tex)
+   {
+      SYM(glGenTextures)(1, &tex);
+      SYM(glBindTexture)(GL_TEXTURE_2D, tex);
+      SYM(glTexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      SYM(glTexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      SYM(glTexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      SYM(glTexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      SYM(glTexImage2D)(GL_TEXTURE_2D, 0, INTERNAL_FORMAT, width, height, 0, TEX_TYPE, TEX_FORMAT, NULL);
+      if (!support_unpack_row_length)
+         convert_buffer = new uint8_t[width * height * 4];
+   }
+   else
+      SYM(glBindTexture)(GL_TEXTURE_2D, tex);
+
+   if (support_unpack_row_length)
+   {
+      SYM(glPixelStorei)(GL_UNPACK_ROW_LENGTH, pitch / base_size);
+      SYM(glTexSubImage2D)(GL_TEXTURE_2D,
+            0, 0, 0, width, height, TEX_TYPE,
+            TEX_FORMAT, buffer);
+
+      SYM(glPixelStorei)(GL_UNPACK_ROW_LENGTH, 0);
+   }
+   else
+   {
+      // No GL_UNPACK_ROW_LENGTH ;(
+      unsigned pitch_width = pitch / base_size;
+      if (width == pitch_width) // Happy path :D
+      {
+         SYM(glTexSubImage2D)(GL_TEXTURE_2D,
+               0, 0, 0, width, height, TEX_TYPE,
+               TEX_FORMAT, buffer);
+      }
+      else // Slower path.
+      {
+         const unsigned line_bytes = width * base_size;
+
+         uint8_t *dst = (uint8_t*)convert_buffer; // This buffer is preallocated for this purpose.
+         const uint8_t *src = (const uint8_t*)buffer;
+
+         for (h = 0; h < height; h++, src += pitch, dst += line_bytes)
+            memcpy(dst, src, line_bytes);
+
+         SYM(glTexSubImage2D)(GL_TEXTURE_2D,
+               0, 0, 0, width, height, TEX_TYPE,
+               TEX_FORMAT, convert_buffer);         
+      }
+   }
+
+   SYM(glBindTexture)(GL_TEXTURE_2D, 0);
+}
+
+static bool camera_prepare(void)
+{
+   struct retro_variable camvar = { "camera-type" };
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &camvar) && camvar.value)
+   {
+      if (!strcmp(camvar.value, "texture"))
+      {
+         camera_cb.caps = (1 << RETRO_CAMERA_BUFFER_OPENGL_TEXTURE);
+         camera_cb.frame_opengl_texture = camera_gl_callback;
+      }
+      else
+      {
+         camera_cb.caps = (1 << RETRO_CAMERA_BUFFER_RAW_FRAMEBUFFER);
+         camera_cb.frame_raw_framebuffer = camera_raw_fb_callback;
+      }
+   }
+
+   struct retro_variable camuse = { "camera-use" };
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &camuse) && camuse.value)
+   {
+      if (!strcmp(camuse.value, "true"))
+      {
+         camera_cb.initialized = camera_initialized;
+
+         if (!environ_cb(RETRO_ENVIRONMENT_GET_CAMERA_INTERFACE, &camera_cb))
+         {
+            fprintf(stderr, "camera is not supported.\n");
+            return false;
+         }
+         camera_use = true;
+      }
+      else if (!strcmp(camuse.value, "false") && camera_use)
+      {
+         camera_cb.stop();
+         camera_use = false;
+         vertex_data_ptr = vertex_data;
+         return true;
+      }
+   }
+
+   vertex_data_ptr = vertex_data_camera;
+
+   return true;
+}
 
 static vec3 check_input()
 {
-   static unsigned select_timeout = 0;
    input_poll_cb();
 
    int x = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
@@ -530,49 +670,20 @@ static vec3 check_input()
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
       player_pos += s * look_dir_side;
 
+#if 0
+   static unsigned select_timeout = 0;
+
    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT) 
          && select_timeout == 0)
    {
       select_timeout = 30;
       switch (launch_category)
       {
-#if !defined(ANDROID) && !defined(IOS)
          case LAUNCH_CATEGORY_GAME:
             launch_category = LAUNCH_CATEGORY_MOVIE;
-            texpath = std::string(PICS_HOME) + "/lionking.png";
+            texpath = "/lionking.png";
             context_reset();
             break;
-         case LAUNCH_CATEGORY_MOVIE:
-            launch_category = LAUNCH_CATEGORY_SCENE1;
-            texpath = std::string(PICS_HOME) + "/scene1.png";
-            context_reset();
-            break;
-#else
-         case LAUNCH_CATEGORY_GAME:
-            launch_category = LAUNCH_CATEGORY_SCENE1;
-            texpath = std::string(PICS_HOME) + "/scene1.png";
-            context_reset();
-            break;
-#endif
-         case LAUNCH_CATEGORY_SCENE1:
-            launch_category = LAUNCH_CATEGORY_SCENE2;
-            texpath = std::string(PICS_HOME) + "/scene2.png";
-            context_reset();
-            break;
-         case LAUNCH_CATEGORY_SCENE2:
-            launch_category = LAUNCH_CATEGORY_MODEL1;
-            texpath = std::string(PICS_HOME) + "/model1.png";
-            context_reset();
-            break;
-         case LAUNCH_CATEGORY_MODEL1:
-            launch_category = LAUNCH_CATEGORY_MODEL2;
-            texpath = std::string(PICS_HOME) + "/model2.png";
-            context_reset();
-            break;
-         default:
-            launch_category = LAUNCH_CATEGORY_GAME;
-            texpath = std::string(PICS_HOME) + "/tombraider.png";
-            context_reset();
       }
 
       switch (launch_category)
@@ -585,64 +696,26 @@ static vec3 check_input()
                environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
             }
             break;
-#if !defined(ANDROID) && !defined(IOS)
-         case LAUNCH_CATEGORY_MOVIE:
-            {
-               struct retro_message msg = {
-                  "Category: Movies",
-                  180 };
-               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-            }
-            break;
-#endif
-         case LAUNCH_CATEGORY_SCENE1:
-            {
-               struct retro_message msg = {
-                  "Category: Scene 1",
-                  180 };
-               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-            }
-            break;
-         case LAUNCH_CATEGORY_SCENE2:
-            {
-               struct retro_message msg = {
-                  "Category: Scene 2",
-                  180 };
-               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-            }
-            break;
-         case LAUNCH_CATEGORY_MODEL1:
-            {
-               struct retro_message msg = {
-                  "Category: Cars",
-                  180 };
-               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-            }
-            break;
-         case LAUNCH_CATEGORY_MODEL2:
-            {
-               struct retro_message msg = {
-                  "Category: Models",
-                  180 };
-               environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-            }
-            break;
       }
    }
    else if (select_timeout != 0)
       select_timeout--;
+#endif
 
    check_collision_cube();
 
    return look_dir;
 }
 
-
 static bool first_init = true;
+
+
+
 
 static void update_variables(void)
 {
    struct retro_variable var;
+   bool reinit = false;
 
    var.key = "resolution";
    var.value = NULL;
@@ -670,9 +743,7 @@ static void update_variables(void)
    {
       cube_size = atoi(var.value);
       update = true;
-
-      if (!first_init)
-         context_reset();
+      reinit = true;
    }
 
    var.key = "cube_stride";
@@ -682,11 +753,10 @@ static void update_variables(void)
    {
       cube_stride = atof(var.value);
       update = true;
-
-      if (!first_init)
-         context_reset();
+      reinit = true;
    }
 
+   /*
    var.key = "launch_category";
    var.value = NULL;
 
@@ -695,41 +765,18 @@ static void update_variables(void)
       if (strcmp(var.value, "games") == 0)
       {
          launch_category = LAUNCH_CATEGORY_GAME;
-         texpath = std::string(PICS_HOME) + "/tombraider.png";
-      }
-#if !defined(ANDROID) && !defined(IOS)
-      else if (strcmp(var.value, "movies") == 0)
-      {
-         launch_category = LAUNCH_CATEGORY_MOVIE;
-         texpath = std::string(PICS_HOME) + "/lionking.png";
-      }
-#endif
-      else if (strcmp(var.value, "scene1") == 0)
-      {
-         launch_category = LAUNCH_CATEGORY_SCENE1;
-         texpath = std::string(PICS_HOME) + "/scene1.png";
-      }
-      else if (strcmp(var.value, "scene2") == 0)
-      {
-         launch_category = LAUNCH_CATEGORY_SCENE2;
-         texpath = std::string(PICS_HOME) + "/scene2.png";
-      }
-      else if (strcmp(var.value, "model1") == 0)
-      {
-         launch_category = LAUNCH_CATEGORY_MODEL1;
-         texpath = std::string(PICS_HOME) + "/model1.png";
-      }
-      else if (strcmp(var.value, "model2") == 0)
-      {
-         launch_category = LAUNCH_CATEGORY_MODEL2;
-         texpath = std::string(PICS_HOME) + "/model2.png";
+         texpath = "/tombraider.png";
       }
       update = true;
-
-      if (!first_init)
-         context_reset();
+      reinit = true;
    }
+   */
 
+   if (!first_init)
+      reinit = camera_prepare();
+
+   if (!first_init && reinit)
+      context_reset();
 }
 
 void retro_run(void)
@@ -764,7 +811,8 @@ void retro_run(void)
    int tloc = SYM(glGetUniformLocation)(prog, "uTexture");
    SYM(glUniform1i)(tloc, 0);
    SYM(glActiveTexture)(GL_TEXTURE0);
-   SYM(glBindTexture)(GL_TEXTURE_2D, tex);
+
+   SYM(glBindTexture)(g_texture_target, tex);
 
    int lloc = SYM(glGetUniformLocation)(prog, "light_pos");
    vec3 light_pos(0, 150, 15);
@@ -806,7 +854,7 @@ void retro_run(void)
 
                for (unsigned v = 0; v < 36; v++)
                {
-                  cube.vertices[v] = vertex_data[indices[v]];
+                  cube.vertices[v] = vertex_data_ptr[indices[v]];
                   cube.vertices[v].vert[0] += off_x;
                   cube.vertices[v].vert[1] += off_y;
                   cube.vertices[v].vert[2] += off_z;
@@ -826,15 +874,33 @@ void retro_run(void)
    SYM(glDisableVertexAttribArray)(vloc);
    SYM(glDisableVertexAttribArray)(nloc);
    SYM(glDisableVertexAttribArray)(tcloc);
-   SYM(glBindTexture)(GL_TEXTURE_2D, 0);
+   SYM(glBindTexture)(g_texture_target, 0);
 
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, width, height, 0);
 }
 
 
+static inline bool gl_query_extension(const char *ext)
+{
+#ifdef ANDROID
+   /* FIXME - glGetString at this point fails on Android 4.4 (but not 4.0 to 4.3) - so return false for now */
+   return false;
+#else
+   const char *str = (const char*)SYM(glGetString)(GL_EXTENSIONS);
+   bool ret = str && strstr(str, ext);
+
+   return ret;
+#endif
+}
+
+
+
+
+
 bool retro_load_game(const struct retro_game_info *info)
 {
    update_variables();
+   memset(&camera_cb, 0, sizeof(camera_cb));
 
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
@@ -842,6 +908,10 @@ bool retro_load_game(const struct retro_game_info *info)
       fprintf(stderr, "XRGB8888 is not supported.\n");
       return false;
    }
+
+   bool camera_init = camera_prepare();
+   if (!camera_init)
+      return false;
 
 #ifdef GLES
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2;
@@ -853,6 +923,17 @@ bool retro_load_game(const struct retro_game_info *info)
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
       return false;
 
+#ifdef GLES
+   if (camera_cb.caps & (1 << RETRO_CAMERA_BUFFER_RAW_FRAMEBUFFER) && !gl_query_extension("BGRA8888"))
+   {
+      fprintf(stderr, "no BGRA8888 support for raw framebuffer, exiting...\n");
+      return false;
+   }
+   support_unpack_row_length = gl_query_extension("GL_EXT_unpack_subimage");
+#else
+   support_unpack_row_length = true;
+#endif
+
    fprintf(stderr, "Loaded game!\n");
    player_pos = vec3(0, 0, 0);
    texpath = info->path;
@@ -863,7 +944,11 @@ bool retro_load_game(const struct retro_game_info *info)
 }
 
 void retro_unload_game(void)
-{}
+{
+   if (convert_buffer)
+      delete[] convert_buffer;
+   convert_buffer = NULL;
+}
 
 unsigned retro_get_region(void)
 {
@@ -921,4 +1006,3 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
    (void)enabled;
    (void)code;
 }
-
