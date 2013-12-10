@@ -624,6 +624,7 @@ static bool camera_prepare(void)
             fprintf(stderr, "camera is not supported.\n");
             return false;
          }
+         camera_cb.start();
          camera_use = true;
       }
       else if (!strcmp(camuse.value, "false") && camera_use)
@@ -773,7 +774,11 @@ static void update_variables(void)
    */
 
    if (!first_init)
-      reinit = camera_prepare();
+   {
+      bool ret = camera_prepare();
+      if (!reinit)
+         reinit = ret;
+   }
 
    if (!first_init && reinit)
       context_reset();
@@ -893,10 +898,6 @@ static inline bool gl_query_extension(const char *ext)
 #endif
 }
 
-
-
-
-
 bool retro_load_game(const struct retro_game_info *info)
 {
    update_variables();
@@ -909,8 +910,7 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
    }
 
-   bool camera_init = camera_prepare();
-   if (!camera_init)
+   if (!camera_prepare())
       return false;
 
 #ifdef GLES
