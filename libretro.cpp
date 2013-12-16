@@ -35,6 +35,13 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 static struct retro_hw_render_callback hw_render;
 static struct retro_camera_callback camera_cb;
+static retro_log_printf_t log_cb;
+static retro_video_refresh_t video_cb;
+static retro_audio_sample_t audio_cb;
+static retro_audio_sample_batch_t audio_batch_cb;
+static retro_environment_t environ_cb;
+static retro_input_poll_t input_poll_cb;
+static retro_input_state_t input_state_cb;
 
 using namespace glm;
 
@@ -249,7 +256,8 @@ static void print_shader_log(GLuint shader)
 
    char *buffer = new char[len];
    SYM(glGetShaderInfoLog)(shader, len, &len, buffer);
-   fprintf(stderr, "Info Log: %s\n", buffer);
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "%s\n", buffer);
    delete[] buffer;
 }
 
@@ -268,13 +276,14 @@ static void compile_program(void)
    SYM(glGetShaderiv)(vert, GL_COMPILE_STATUS, &status);
    if (!status)
    {
-      fprintf(stderr, "Vertex shader failed to compile!\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "Vertex shader failed to compile!\n");
       print_shader_log(vert);
    }
    SYM(glGetShaderiv)(frag, GL_COMPILE_STATUS, &status);
-   if (!status)
+   if (!status && log_cb)
    {
-      fprintf(stderr, "Fragment shader failed to compile!\n");
+      log_cb(RETRO_LOG_ERROR, "Fragment shader failed to compile!\n");
       print_shader_log(frag);
    }
 
@@ -283,8 +292,8 @@ static void compile_program(void)
    SYM(glLinkProgram)(prog);
 
    SYM(glGetProgramiv)(prog, GL_LINK_STATUS, &status);
-   if (!status)
-      fprintf(stderr, "Program failed to link!\n");
+   if (!status && log_cb)
+      log_cb(RETRO_LOG_ERROR, "Program failed to link!\n");
 }
 
 static void setup_vao(void)
@@ -300,7 +309,7 @@ static GLuint load_texture(const char *path)
    unsigned width, height;
    if (!rpng_load_image_rgba(path, &data, &width, &height))
    {
-      fprintf(stderr, "Couldn't load texture: %s\n", path);
+      log_cb(RETRO_LOG_ERROR, "Couldn't load texture: %s\n", path);
       return 0;
    }
 
@@ -319,6 +328,11 @@ static GLuint load_texture(const char *path)
 
 void retro_init(void)
 {
+   struct retro_log_callback log;
+
+   environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log);
+   if (log.log)
+      log_cb = log.log;
 }
 
 void retro_deinit(void)
@@ -356,12 +370,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_height  = MAX_HEIGHT;
 }
 
-static retro_video_refresh_t video_cb;
-static retro_audio_sample_t audio_cb;
-static retro_audio_sample_batch_t audio_batch_cb;
-static retro_environment_t environ_cb;
-static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -495,10 +503,15 @@ static void check_collision_cube()
    vec3 closest_cube_pos = vec3(0, 0, 0);//cube_origin + closest_cube * cube_stride;
    vec3 cube_distance = abs(shifted_player_pos - closest_cube_pos);
    vec3 cube_size_max = (vec3)((float)cube_size - 1);
-   //fprintf(stderr, "shifted_player_pos: %f %f %f\n", shifted_player_pos.x, shifted_player_pos.y, shifted_player_pos.z);
-   //fprintf(stderr, "cube: %f %f %f\n", closest_cube.x, closest_cube.y, closest_cube.z);
-   //fprintf(stderr, "cube_pos: %f %f %f\n", closest_cube_pos.x, closest_cube_pos.y, closest_cube_pos.z);
-   //fprintf(stderr, "cube_distance: %f %f %f\n", cube_distance.x, cube_distance.y, cube_distance.z);
+#if 0
+   if (log_cb)
+   {
+      log_cb(RETRO_LOG_INFO, "shifted_player_pos: %f %f %f\n", shifted_player_pos.x, shifted_player_pos.y, shifted_player_pos.z);
+      log_cb(RETRO_LOG_INFO, "cube: %f %f %f\n", closest_cube.x, closest_cube.y, closest_cube.z);
+      log_cb(RETRO_LOG_INFO, "cube_pos: %f %f %f\n", closest_cube_pos.x, closest_cube_pos.y, closest_cube_pos.z);
+      log_cb(RETRO_LOG_INFO, "cube_distance: %f %f %f\n", cube_distance.x, cube_distance.y, cube_distance.z);
+   }
+#endif
    if (check_closest_cube(cube_size_max, closest_cube) &&
          check_cube_distance_per_dimension(cube_distance))
       hit(closest_cube);
@@ -506,7 +519,8 @@ static void check_collision_cube()
 
 static void context_reset(void)
 {
-   fprintf(stderr, "Context reset!\n");
+   if (log_cb)
+   log_cb(RETRO_LOG_INFO, "Context reset!\n");
 
    GL::set_function_cb(hw_render.get_proc_address);
    GL::init_symbol_map();
@@ -621,7 +635,8 @@ static bool camera_prepare(void)
 
          if (!environ_cb(RETRO_ENVIRONMENT_GET_CAMERA_INTERFACE, &camera_cb))
          {
-            fprintf(stderr, "camera is not supported.\n");
+            if (log_cb)
+               log_cb(RETRO_LOG_ERROR, "camera is not supported.\n");
             return false;
          }
          camera_cb.start();
@@ -734,7 +749,8 @@ static void update_variables(void)
       if (pch)
          height = strtoul(pch, NULL, 0);
 
-      fprintf(stderr, "Got size: %u x %u.\n", width, height);
+      if (log_cb)
+         log_cb(RETRO_LOG_INFO, "Got size: %u x %u.\n", width, height);
    }
    
    var.key = "cube_size";
@@ -867,8 +883,7 @@ void retro_run(void)
             }
          }
       }
-      SYM(glBufferData)(GL_ARRAY_BUFFER, cube_size * cube_size * cube_size * sizeof(Cube),
-            &cubes[0], GL_STATIC_DRAW);
+      SYM(glBufferData)(GL_ARRAY_BUFFER, cube_size * cube_size * cube_size * sizeof(Cube), &cubes[0], GL_STATIC_DRAW);
       SYM(glBindBuffer)(GL_ARRAY_BUFFER, 0);
    }
 
@@ -906,7 +921,8 @@ bool retro_load_game(const struct retro_game_info *info)
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
    {
-      fprintf(stderr, "XRGB8888 is not supported.\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "XRGB8888 is not supported.\n");
       return false;
    }
 
@@ -926,7 +942,8 @@ bool retro_load_game(const struct retro_game_info *info)
 #ifdef GLES
    if (camera_cb.caps & (1 << RETRO_CAMERA_BUFFER_RAW_FRAMEBUFFER) && !gl_query_extension("BGRA8888"))
    {
-      fprintf(stderr, "no BGRA8888 support for raw framebuffer, exiting...\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "no BGRA8888 support for raw framebuffer, exiting...\n");
       return false;
    }
    support_unpack_row_length = gl_query_extension("GL_EXT_unpack_subimage");
@@ -934,7 +951,8 @@ bool retro_load_game(const struct retro_game_info *info)
    support_unpack_row_length = true;
 #endif
 
-   fprintf(stderr, "Loaded game!\n");
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "Loaded game!\n");
    player_pos = vec3(0, 0, 0);
    texpath = info->path;
 
