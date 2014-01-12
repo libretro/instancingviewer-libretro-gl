@@ -27,14 +27,15 @@
 #include <tr1/memory>
 #endif
 
+#include "libretro.h"
+
 #if defined(__QNX__) || defined(__CELLOS_LV2__) || defined(IOS) || defined(OSX)
 namespace std1 = compat;
 #elif !defined(EMSCRIPTEN)
 namespace std1 = std::tr1;
 #endif
 
-void retro_stderr(const char *str);
-void retro_stderr_print(const char *fmt, ...);
+extern retro_log_printf_t log_cb;
 
 #endif
 

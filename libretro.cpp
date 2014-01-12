@@ -35,7 +35,7 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 static struct retro_hw_render_callback hw_render;
 static struct retro_camera_callback camera_cb;
-static retro_log_printf_t log_cb;
+retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
@@ -369,34 +369,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.base_height = BASE_HEIGHT;
    info->geometry.max_width   = MAX_WIDTH;
    info->geometry.max_height  = MAX_HEIGHT;
-}
-
-
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
-#include <stdarg.h>
-
-void retro_stderr(const char *str)
-{
-#if defined(_WIN32)
-   OutputDebugStringA(str);
-#elif defined(ANDROID)
-   __android_log_print(ANDROID_LOG_INFO, "InstancingViewer: ", "%s", str);
-#else
-   fputs(str, stderr);
-#endif
-}
-
-void retro_stderr_print(const char *fmt, ...)
-{
-   char buf[1024];
-   va_list list;
-   va_start(list, fmt);
-   vsprintf(buf, fmt, list); // Unsafe, but vsnprintf isn't in C++03 :(
-   va_end(list);
-   retro_stderr(buf);
 }
 
 void retro_set_environment(retro_environment_t cb)
